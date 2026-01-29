@@ -1,5 +1,7 @@
 import uuid
-from fastapi import FastAPI, Depends, Query
+from datetime import datetime, timezone
+
+from fastapi import FastAPI, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 
 from .db import Base, engine, get_db, SessionLocal
@@ -59,6 +61,7 @@ def start_session(payload: ExerciseSessionStart, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="BreathingExercise not found")
 
     session = ExerciseSession(
+        sessionID=str(uuid.uuid4()),
         exerciseID=payload.exerciseID,
         repetitionsUsed=payload.repetitionsUsed,
         inhaleUsed=payload.inhaleUsed,
@@ -78,10 +81,12 @@ def finish_session(sessionID: str, payload: ExerciseSessionFinish, db: Session =
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    if session.endedAt is not None:
+        raise HTTPException(status_code=400, detail="Session already finished")
+
     session.wasAborted = payload.wasAborted
     # set endedAt to "now"
-    from sqlalchemy import func
-    session.endedAt = func.now()
+    session.endedAt = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(session)
@@ -89,5 +94,21 @@ def finish_session(sessionID: str, payload: ExerciseSessionFinish, db: Session =
 
 
 @app.get("/sessions", response_model=list[ExerciseSessionOut])
-def list_sessions(db: Session = Depends(get_db)):
-    return db.query(ExerciseSession).order_by(ExerciseSession.startedAt.desc()).all()
+def list_sessions(
+    exerciseID: str | None = Query(default=None, description="Filter by exerciseID"),
+    start: datetime | None = Query(default=None, description="Start datetime (ISO 8601)"),
+    end: datetime | None = Query(default=None, description="End datetime (ISO 8601)"),
+    db: Session = Depends(get_db),
+):
+    q = db.query(ExerciseSession)
+
+    if exerciseID is not None:
+        q = q.filter(ExerciseSession.exerciseID == exerciseID)
+
+    if start is not None:
+        q = q.filter(ExerciseSession.startedAt >= start)
+
+    if end is not None:
+        q = q.filter(ExerciseSession.startedAt <= end)
+
+    return q.order_by(ExerciseSession.startedAt.desc()).all()
