@@ -1,0 +1,52 @@
+############################
+# Cursor / VS Code
+############################
+.vscode/
+.cursor/
+.cursorignore
+.cursor-cache/
+.cursor-tmp/
+
+############################
+# Python
+############################
+# Virtual environments
+.venv/
+venv/
+backend/.venv/
+
+# Python cache / compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+.env.*
+
+############################
+# Databases (local dev only)
+############################
+*.sqlite
+*.sqlite3
+*.db
+
+############################
+# Node / Frontend (future-proof)
+############################
+node_modules/
+dist/
+build/
+.cache/
+
+############################
+# Logs
+############################
+*.log
+
+############################
+# OS-specific
+############################
+.DS_Store
+Thumbs.db
