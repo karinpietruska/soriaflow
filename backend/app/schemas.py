@@ -26,15 +26,16 @@ class BreathingExerciseOut(BreathingExerciseCreate):
 class ExerciseSessionStart(BaseModel):
     exerciseID: str
 
-    repetitionsUsed: int = Field(ge=1, le=500)
-    inhaleUsed: int = Field(ge=1, le=600)
-    hold1Used: int = Field(ge=0, le=600)
-    exhaleUsed: int = Field(ge=1, le=600)
-    hold2Used: int = Field(ge=0, le=600)
+    repetitionsPlanned: int = Field(ge=1, le=500)
+    inhaleSec: int = Field(ge=1, le=600)
+    hold1Sec: int = Field(ge=0, le=600)
+    exhaleSec: int = Field(ge=1, le=600)
+    hold2Sec: int = Field(ge=0, le=600)
 
 
 class ExerciseSessionFinish(BaseModel):
     wasAborted: bool = False
+    repetitionsCompleted: int = Field(ge=0, le=500)
 
 
 class ExerciseSessionOut(BaseModel):
@@ -44,11 +45,12 @@ class ExerciseSessionOut(BaseModel):
     endedAt: datetime | None
     wasAborted: bool
 
-    repetitionsUsed: int
-    inhaleUsed: int
-    hold1Used: int
-    exhaleUsed: int
-    hold2Used: int
+    repetitionsPlanned: int
+    repetitionsCompleted: int
+    inhaleSec: int
+    hold1Sec: int
+    exhaleSec: int
+    hold2Sec: int
     cycleDuration: int
     totalDuration: int
 

@@ -79,19 +79,20 @@ class ExerciseSession(Base):
         default=False,
     )
 
-    repetitionsUsed: Mapped[int] = mapped_column(Integer, nullable=False)
-    inhaleUsed: Mapped[int] = mapped_column(Integer, nullable=False)
-    hold1Used: Mapped[int] = mapped_column(Integer, nullable=False)
-    exhaleUsed: Mapped[int] = mapped_column(Integer, nullable=False)
-    hold2Used: Mapped[int] = mapped_column(Integer, nullable=False)
+    repetitionsPlanned: Mapped[int] = mapped_column(Integer, nullable=False)
+    repetitionsCompleted: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    inhaleSec: Mapped[int] = mapped_column(Integer, nullable=False)
+    hold1Sec: Mapped[int] = mapped_column(Integer, nullable=False)
+    exhaleSec: Mapped[int] = mapped_column(Integer, nullable=False)
+    hold2Sec: Mapped[int] = mapped_column(Integer, nullable=False)
 
     @property
     def cycleDuration(self) -> int:
         """Derived duration of one breathing cycle used in this session."""
-        return self.inhaleUsed + self.hold1Used + self.exhaleUsed + self.hold2Used
+        return self.inhaleSec + self.hold1Sec + self.exhaleSec + self.hold2Sec
 
     @property
     def totalDuration(self) -> int:
         """Derived total duration of the session in seconds."""
-        return self.cycleDuration * self.repetitionsUsed
+        return self.cycleDuration * self.repetitionsCompleted
     

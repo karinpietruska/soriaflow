@@ -63,11 +63,12 @@ def start_session(payload: ExerciseSessionStart, db: Session = Depends(get_db)):
     session = ExerciseSession(
         sessionID=str(uuid.uuid4()),
         exerciseID=payload.exerciseID,
-        repetitionsUsed=payload.repetitionsUsed,
-        inhaleUsed=payload.inhaleUsed,
-        hold1Used=payload.hold1Used,
-        exhaleUsed=payload.exhaleUsed,
-        hold2Used=payload.hold2Used,
+        repetitionsPlanned=payload.repetitionsPlanned,
+        repetitionsCompleted=0,
+        inhaleSec=payload.inhaleSec,
+        hold1Sec=payload.hold1Sec,
+        exhaleSec=payload.exhaleSec,
+        hold2Sec=payload.hold2Sec,
     )
     db.add(session)
     db.commit()
@@ -84,7 +85,14 @@ def finish_session(sessionID: str, payload: ExerciseSessionFinish, db: Session =
     if session.endedAt is not None:
         raise HTTPException(status_code=400, detail="Session already finished")
 
+    if payload.repetitionsCompleted > session.repetitionsPlanned:
+        raise HTTPException(
+            status_code=400,
+            detail="repetitionsCompleted cannot exceed repetitionsPlanned",
+        )
+
     session.wasAborted = payload.wasAborted
+    session.repetitionsCompleted = payload.repetitionsCompleted
     # set endedAt to "now"
     session.endedAt = datetime.now(timezone.utc)
 
