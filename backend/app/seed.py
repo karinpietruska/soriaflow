@@ -13,15 +13,18 @@ DEFAULT_EXERCISES = [
 
 
 def seed_defaults(db: Session) -> None:
-    existing = (
-        db.query(BreathingExercise)
-        .filter(BreathingExercise.source == ExerciseSource.DEFAULT)
-        .count()
-    )
-    if existing > 0:
-        return
-
     for name, reps, inhale, hold1, exhale, hold2 in DEFAULT_EXERCISES:
+        exists = (
+            db.query(BreathingExercise)
+            .filter(
+                BreathingExercise.name == name,
+                BreathingExercise.source == ExerciseSource.DEFAULT,
+            )
+            .first()
+        )
+        if exists:
+            continue
+
         db.add(
             BreathingExercise(
                 exerciseID=str(uuid.uuid4()),
