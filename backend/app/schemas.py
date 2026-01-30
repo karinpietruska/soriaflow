@@ -16,6 +16,8 @@ class BreathingExerciseCreate(BaseModel):
 
 class BreathingExerciseOut(BreathingExerciseCreate):
     exerciseID: str
+    defaultCycleDuration: int
+    defaultTotalDuration: int
 
     class Config:
         from_attributes = True
@@ -47,6 +49,8 @@ class ExerciseSessionOut(BaseModel):
     hold1Used: int
     exhaleUsed: int
     hold2Used: int
+    cycleDuration: int
+    totalDuration: int
 
     class Config:
         from_attributes = True

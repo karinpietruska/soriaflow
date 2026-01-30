@@ -36,6 +36,21 @@ class BreathingExercise(Base):
     defaultExhale: Mapped[int] = mapped_column(Integer, nullable=False)
     defaultHold2: Mapped[int] = mapped_column(Integer, nullable=False)
 
+    @property
+    def defaultCycleDuration(self) -> int:
+        """Derived duration of one breathing cycle in seconds."""
+        return (
+            self.defaultInhale
+            + self.defaultHold1
+            + self.defaultExhale
+            + self.defaultHold2
+        )
+
+    @property
+    def defaultTotalDuration(self) -> int:
+        """Derived total duration of the exercise in seconds."""
+        return self.defaultCycleDuration * self.defaultRepetitions
+
 
 class ExerciseSession(Base):
     __tablename__ = "exercise_sessions"
@@ -69,4 +84,14 @@ class ExerciseSession(Base):
     hold1Used: Mapped[int] = mapped_column(Integer, nullable=False)
     exhaleUsed: Mapped[int] = mapped_column(Integer, nullable=False)
     hold2Used: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    @property
+    def cycleDuration(self) -> int:
+        """Derived duration of one breathing cycle used in this session."""
+        return self.inhaleUsed + self.hold1Used + self.exhaleUsed + self.hold2Used
+
+    @property
+    def totalDuration(self) -> int:
+        """Derived total duration of the session in seconds."""
+        return self.cycleDuration * self.repetitionsUsed
     
