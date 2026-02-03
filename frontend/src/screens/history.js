@@ -1,5 +1,5 @@
 import { sessions, exercises } from "../data/dummy.js";
-import { cycleDurationSec, totalDurationSec } from "../ui/duration.js";
+import { cycleDurationSec, totalDurationSec } from "../utils/duration.js";
 
 export function renderHistory(el) {
   const exNameById = Object.fromEntries(exercises.map((e) => [e.exerciseID, e.name]));

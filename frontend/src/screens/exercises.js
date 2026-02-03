@@ -1,5 +1,5 @@
 import { exercises } from "../data/dummy.js";
-import { defaultCycleDuration, defaultTotalDuration } from "../ui/duration.js";
+import { defaultCycleDuration, defaultTotalDuration } from "../utils/duration.js";
 
 export function renderExercises(el) {
   const rows = exercises
