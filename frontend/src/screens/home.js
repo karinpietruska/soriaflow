@@ -29,18 +29,36 @@ export function renderHome(
     : "";
   el.innerHTML = `
     ${messageBlock}
-    <div class="text-center mb-4">
-      <h1 class="display-6 mb-2">${ex.name}</h1>
-      <div class="text-secondary">
+    <div class="run-title run-title--transparent">
+      <h2 class="h4 mb-0">Run Exercise</h2>
+    </div>
+    <div class="mb-3">
+      <div class="text-exercise-name fs-2 mb-2">${ex.name}</div>
+      <div class="text-secondary fs-6">
         Cycle: ${cycleSec}s · Total: ${totalMin} min · Reps: ${config.repetitions}
       </div>
     </div>
 
-    <div class="d-flex justify-content-center my-5">
-      <div class="rounded-circle breath-circle"></div>
+    <div class="d-flex justify-content-center my-4">
+      <div class="rounded-circle breath-circle breath-circle--run"></div>
     </div>
 
-    <div class="d-flex justify-content-center gap-3 flex-wrap">
+    <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap mb-4 run-info-row">
+      <div class="px-3 run-info-item">
+        <div class="text-secondary small fs-6">Phase</div>
+        <div class="fs-3">Ready</div>
+      </div>
+      <div class="px-3 run-info-item">
+        <div class="text-secondary small fs-6">Time</div>
+        <div class="fs-3">0s</div>
+      </div>
+      <div class="px-3 run-info-item">
+        <div class="text-secondary small fs-6">Repetition</div>
+        <div class="fs-3">0 / ${config.repetitions}</div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-center gap-3 flex-wrap run-actions">
       <button class="btn btn-info btn-lg" data-nav="run">Start Exercise</button>
       <button class="btn btn-outline-light btn-lg" data-nav="exercises">${chooseLabel}</button>
     </div>

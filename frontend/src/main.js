@@ -2,6 +2,8 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./style.css"; // keep this for your own overrides
 
+import { gsap } from "gsap";
+
 import { addSession, getExercises } from "./data/store.js";
 import { createPresetExercise } from "./data/exercisesService.js";
 import { cycleDurationSec } from "./utils/duration.js";
@@ -40,6 +42,7 @@ let runState = {
   startedAt: null,
 };
 let runTimer = null;
+let breathTimeline = null;
 
 function isPresetNameTaken(name) {
   const normalized = name.trim().toLowerCase();
@@ -73,26 +76,52 @@ function buildPhases(config) {
 }
 
 function renderRunScreen() {
-  if (!runState.active) {
-    renderRun(document.querySelector("#screen-run"), {
+  const container = document.querySelector("#screen-run");
+  if (!container) return;
+  if (!container.dataset.rendered) {
+    renderRun(container, {
       exerciseName: selectedExercise?.name,
       phaseLabel: "Ready",
       secondsRemaining: 0,
       repetitionLabel: `0 / ${currentConfig?.repetitions ?? 0}`,
+      metaLabel: "",
     });
-    return;
+    container.dataset.rendered = "true";
   }
-  const phase = runState.phases[runState.phaseIndex];
-  const currentRep = Math.min(
-    runState.repetitionsCompleted + 1,
-    runState.repetitionsPlanned
-  );
-  renderRun(document.querySelector("#screen-run"), {
-    exerciseName: selectedExercise?.name,
-    phaseLabel: phase?.label ?? "Ready",
-    secondsRemaining: runState.secondsRemaining,
-    repetitionLabel: `${currentRep} / ${runState.repetitionsPlanned}`,
-  });
+
+  const nameEl = container.querySelector("[data-run-name]");
+  const metaEl = container.querySelector("[data-run-meta]");
+  const phaseEl = container.querySelector("[data-run-phase]");
+  const timeEl = container.querySelector("[data-run-time]");
+  const repEl = container.querySelector("[data-run-rep]");
+
+  const phase = runState.active
+    ? runState.phases[runState.phaseIndex]
+    : { label: "Ready" };
+  const currentRep = runState.active
+    ? Math.min(runState.repetitionsCompleted + 1, runState.repetitionsPlanned)
+    : 0;
+
+  if (nameEl) nameEl.textContent = selectedExercise?.name || "Exercise";
+  if (metaEl && currentConfig) {
+    const cycleSec = cycleDurationSec({
+      inhaleSec: currentConfig.inhaleSec,
+      hold1Sec: currentConfig.hold1Sec,
+      exhaleSec: currentConfig.exhaleSec,
+      hold2Sec: currentConfig.hold2Sec,
+    });
+    const totalMin = Math.max(1, Math.round((cycleSec * currentConfig.repetitions) / 60));
+    metaEl.textContent = `Cycle: ${cycleSec}s · Total: ${totalMin} min · Reps: ${currentConfig.repetitions}`;
+  }
+  if (phaseEl) phaseEl.textContent = phase?.label ?? "Ready";
+  if (timeEl) {
+    const secs = runState.active ? runState.secondsRemaining : 0;
+    timeEl.textContent = `${secs}s`;
+  }
+  if (repEl) {
+    const total = runState.active ? runState.repetitionsPlanned : currentConfig?.repetitions ?? 0;
+    repEl.textContent = `${currentRep} / ${total}`;
+  }
 }
 
 function stopRunTimer() {
@@ -100,8 +129,85 @@ function stopRunTimer() {
   runTimer = null;
 }
 
+function startBreathAnimation() {
+  const circle = document.querySelector("#breath-circle");
+  if (!circle) return;
+  const ring = circle.querySelector("[data-breath-ring]");
+  if (breathTimeline) breathTimeline.kill();
+  const minScale = 0.85;
+  const maxScale = 1.2;
+  gsap.set(circle, { scale: minScale, transformOrigin: "50% 50%" });
+  const inhale = Number(currentConfig?.inhaleSec ?? 0);
+  const hold1 = Number(currentConfig?.hold1Sec ?? 0);
+  const exhale = Number(currentConfig?.exhaleSec ?? 0);
+  const hold2 = Number(currentConfig?.hold2Sec ?? 0);
+  let circumference = null;
+  if (ring) {
+    const radius = ring.r.baseVal.value;
+    circumference = 2 * Math.PI * radius;
+    ring.style.strokeDasharray = `${circumference} ${circumference}`;
+    ring.style.strokeDashoffset = `${circumference}`;
+  }
+  breathTimeline = gsap.timeline({ repeat: -1 });
+  if (inhale > 0) {
+    breathTimeline.to(circle, {
+      scale: maxScale,
+      duration: inhale,
+      ease: "power1.inOut",
+    });
+  }
+  if (hold1 > 0) {
+    breathTimeline.to(circle, { scale: maxScale, duration: hold1, ease: "none" });
+  }
+  if (exhale > 0) {
+    breathTimeline.to(circle, {
+      scale: minScale,
+      duration: exhale,
+      ease: "power1.inOut",
+    });
+  }
+  if (hold2 > 0) {
+    breathTimeline.to(circle, { scale: minScale, duration: hold2, ease: "none" });
+  }
+
+  if (ring && circumference) {
+    const inhaleStart = 0;
+    const hold1Start = inhaleStart + (inhale > 0 ? inhale : 0);
+    const exhaleStart = hold1Start + (hold1 > 0 ? hold1 : 0);
+    const hold2Start = exhaleStart + (exhale > 0 ? exhale : 0);
+    let ringFilled = false;
+
+    if (hold1 > 0) {
+      breathTimeline.add(() => {
+        const target = ringFilled ? circumference : 0;
+        ringFilled = !ringFilled;
+        gsap.to(ring, { strokeDashoffset: target, duration: hold1, ease: "none" });
+      }, hold1Start);
+    }
+    if (hold2 > 0) {
+      breathTimeline.add(() => {
+        const target = ringFilled ? circumference : 0;
+        ringFilled = !ringFilled;
+        gsap.to(ring, {
+          strokeDashoffset: target,
+          duration: hold2,
+          ease: "none",
+        });
+      }, hold2Start);
+    }
+  }
+}
+
+function stopBreathAnimation() {
+  if (breathTimeline) {
+    breathTimeline.kill();
+    breathTimeline = null;
+  }
+}
+
 function finishRun({ wasAborted, navigateHome = true }) {
   if (!runState.active) return;
+  stopBreathAnimation();
   stopRunTimer();
   runState.active = false;
   const endedAt = new Date().toISOString();
@@ -151,6 +257,7 @@ function startRunSession() {
     startedAt: new Date().toISOString(),
   };
   renderRunScreen();
+  startBreathAnimation();
   runTimer = setInterval(() => {
     if (!runState.active) return;
     runState.secondsRemaining -= 1;
@@ -434,6 +541,7 @@ const nav = setupNav({
     if (runState.active) {
       finishRun({ wasAborted: true, navigateHome: false });
     }
+    stopBreathAnimation();
     // later: stop/kill GSAP timeline
   },
 });
