@@ -2,7 +2,8 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./style.css"; // keep this for your own overrides
 
-import { exercises } from "./data/dummy.js";
+import { getExercises } from "./data/store.js";
+import { createPresetExercise } from "./data/exercisesService.js";
 import { cycleDurationSec } from "./utils/duration.js";
 import { renderLayout } from "./ui/layout.js";
 import { setupNav } from "./ui/nav.js";
@@ -13,7 +14,7 @@ import { renderHistory } from "./screens/history.js";
 import { renderMood } from "./screens/mood.js";
 
 let currentView = "exercise-list"; // exercise-list | configure | preset-name
-let selectedExercise = exercises[0];
+let selectedExercise = getExercises()[0];
 let currentConfig = selectedExercise
   ? {
       inhaleSec: selectedExercise.defaultInhale,
@@ -25,10 +26,13 @@ let currentConfig = selectedExercise
   : null;
 let presetName = "";
 let presetError = "";
+let presetSaved = false;
 
 function isPresetNameTaken(name) {
   const normalized = name.trim().toLowerCase();
-  return exercises.some((ex) => ex.name.trim().toLowerCase() === normalized);
+  return getExercises().some(
+    (ex) => ex.name.trim().toLowerCase() === normalized
+  );
 }
 
 function renderExerciseItem(ex) {
@@ -50,8 +54,9 @@ function renderExerciseItem(ex) {
 }
 
 function renderExerciseSelection() {
-  const defaultExercises = exercises.filter((e) => e.source === "DEFAULT");
-  const userPresets = exercises.filter((e) => e.source === "USER_PRESET");
+  const list = getExercises();
+  const defaultExercises = list.filter((e) => e.source === "DEFAULT");
+  const userPresets = list.filter((e) => e.source === "USER_PRESET");
 
   return `
     <section class="container my-4">
@@ -189,6 +194,14 @@ function renderConfigureExercise() {
 }
 
 function renderPresetName() {
+  const ex = selectedExercise;
+  const config = currentConfig || {
+    inhaleSec: 0,
+    hold1Sec: 0,
+    exhaleSec: 0,
+    hold2Sec: 0,
+    repetitions: 0,
+  };
   return `
     <section class="container my-4">
       <div class="d-flex align-items-center justify-content-between mb-3">
@@ -196,6 +209,13 @@ function renderPresetName() {
         <button class="btn btn-outline-secondary btn-sm" data-preset-cancel>
           Back
         </button>
+      </div>
+
+      <div class="mb-3">
+        <div class="h5 mb-1">${ex ? ex.name : "Exercise"}</div>
+        <div class="text-muted">
+          ${config.inhaleSec}-${config.hold1Sec}-${config.exhaleSec}-${config.hold2Sec}
+        </div>
       </div>
 
       <div class="card shadow-sm mb-3">
@@ -219,10 +239,22 @@ function renderPresetName() {
         </div>
       </div>
 
-      <div class="d-flex flex-wrap gap-2">
-        <button class="btn btn-primary" data-preset-confirm>Save Preset</button>
-        <button class="btn btn-outline-secondary" data-preset-cancel>Cancel</button>
-      </div>
+      ${
+        presetSaved
+          ? `
+            <div class="alert alert-success py-2">Preset saved.</div>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-primary" data-start-now>Start now</button>
+              <button class="btn btn-outline-secondary" data-back-exercises>Back to exercises</button>
+            </div>
+          `
+          : `
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-primary" data-preset-confirm>Save Preset</button>
+              <button class="btn btn-outline-secondary" data-preset-cancel>Cancel</button>
+            </div>
+          `
+      }
     </section>
   `;
 }
@@ -246,7 +278,7 @@ renderLayout(app);
 
 // Render screens once (sections stay mounted)
 renderHome(document.querySelector("#screen-home"), selectedExercise, currentConfig);
-renderRun(document.querySelector("#screen-run"));
+renderRun(document.querySelector("#screen-run"), selectedExercise, currentConfig);
 renderHistory(document.querySelector("#screen-history"));
 renderMood(document.querySelector("#screen-mood"));
 renderExercisesView();
@@ -270,7 +302,7 @@ document.addEventListener("click", (e) => {
   const item = e.target.closest("[data-exercise-id]");
   if (item) {
     const exerciseID = item.dataset.exerciseId;
-    selectedExercise = exercises.find((ex) => ex.exerciseID === exerciseID);
+    selectedExercise = getExercises().find((ex) => ex.exerciseID === exerciseID);
     currentView = "configure";
     currentConfig = {
       inhaleSec: selectedExercise.defaultInhale,
@@ -308,6 +340,7 @@ document.addEventListener("click", (e) => {
   if (saveBtn) {
     presetName = selectedExercise ? selectedExercise.name : "";
     presetError = "";
+    presetSaved = false;
     currentView = "preset-name";
     renderExercisesView();
     return;
@@ -331,12 +364,39 @@ document.addEventListener("click", (e) => {
       renderExercisesView();
       return;
     }
-    console.log("Save preset (todo):", {
-      name: trimmedName,
-      exercise: selectedExercise,
-      config: currentConfig,
-    });
+    try {
+      const preset = createPresetExercise({
+        name: trimmedName,
+        baseExercise: selectedExercise,
+        defaults: {
+          defaultRepetitions: currentConfig.repetitions,
+          defaultInhale: currentConfig.inhaleSec,
+          defaultHold1: currentConfig.hold1Sec,
+          defaultExhale: currentConfig.exhaleSec,
+          defaultHold2: currentConfig.hold2Sec,
+        },
+      });
+      selectedExercise = preset;
+      presetSaved = true;
+    } catch (err) {
+      presetError = err?.message || "Failed to save preset.";
+      renderExercisesView();
+      return;
+    }
     presetError = "";
+    renderExercisesView();
+    return;
+  }
+
+  const startNowBtn = e.target.closest("[data-start-now]");
+  if (startNowBtn) {
+    renderHome(document.querySelector("#screen-home"), selectedExercise, currentConfig);
+    nav.show("home");
+    return;
+  }
+
+  const backToExercises = e.target.closest("[data-back-exercises]");
+  if (backToExercises) {
     currentView = "exercise-list";
     renderExercisesView();
     return;
@@ -345,6 +405,7 @@ document.addEventListener("click", (e) => {
   const presetCancel = e.target.closest("[data-preset-cancel]");
   if (presetCancel) {
     presetError = "";
+    presetSaved = false;
     currentView = "configure";
     renderExercisesView();
     return;
