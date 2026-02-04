@@ -2,7 +2,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./style.css"; // keep this for your own overrides
 
-import { getExercises } from "./data/store.js";
+import { addSession, getExercises } from "./data/store.js";
 import { createPresetExercise } from "./data/exercisesService.js";
 import { cycleDurationSec } from "./utils/duration.js";
 import { renderLayout } from "./ui/layout.js";
@@ -27,12 +27,148 @@ let currentConfig = selectedExercise
 let presetName = "";
 let presetError = "";
 let presetSaved = false;
+let homeMessage = null;
+let homeMessageTimeout = null;
+
+let runState = {
+  active: false,
+  phases: [],
+  phaseIndex: 0,
+  secondsRemaining: 0,
+  repetitionsCompleted: 0,
+  repetitionsPlanned: 0,
+  startedAt: null,
+};
+let runTimer = null;
 
 function isPresetNameTaken(name) {
   const normalized = name.trim().toLowerCase();
   return getExercises().some(
     (ex) => ex.name.trim().toLowerCase() === normalized
   );
+}
+
+function setHomeMessage(message) {
+  homeMessage = message;
+  if (homeMessageTimeout) clearTimeout(homeMessageTimeout);
+  homeMessageTimeout = setTimeout(() => {
+    homeMessage = null;
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
+  }, 3000);
+}
+
+function buildPhases(config) {
+  const phases = [
+    { label: "Inhale", seconds: Number(config.inhaleSec) },
+    { label: "Hold", seconds: Number(config.hold1Sec) },
+    { label: "Exhale", seconds: Number(config.exhaleSec) },
+    { label: "Hold", seconds: Number(config.hold2Sec) },
+  ];
+  return phases.filter((p) => p.seconds > 0);
+}
+
+function renderRunScreen() {
+  if (!runState.active) {
+    renderRun(document.querySelector("#screen-run"), {
+      exerciseName: selectedExercise?.name,
+      phaseLabel: "Ready",
+      secondsRemaining: 0,
+      repetitionLabel: `0 / ${currentConfig?.repetitions ?? 0}`,
+    });
+    return;
+  }
+  const phase = runState.phases[runState.phaseIndex];
+  const currentRep = Math.min(
+    runState.repetitionsCompleted + 1,
+    runState.repetitionsPlanned
+  );
+  renderRun(document.querySelector("#screen-run"), {
+    exerciseName: selectedExercise?.name,
+    phaseLabel: phase?.label ?? "Ready",
+    secondsRemaining: runState.secondsRemaining,
+    repetitionLabel: `${currentRep} / ${runState.repetitionsPlanned}`,
+  });
+}
+
+function stopRunTimer() {
+  if (runTimer) clearInterval(runTimer);
+  runTimer = null;
+}
+
+function finishRun({ wasAborted, navigateHome = true }) {
+  if (!runState.active) return;
+  stopRunTimer();
+  runState.active = false;
+  const endedAt = new Date().toISOString();
+  const repetitionsCompleted = wasAborted
+    ? runState.repetitionsCompleted
+    : runState.repetitionsPlanned;
+
+  addSession({
+    sessionID: `s-${Date.now()}`,
+    exerciseID: selectedExercise.exerciseID,
+    startedAt: runState.startedAt,
+    endedAt,
+    wasAborted,
+    repetitionsPlanned: runState.repetitionsPlanned,
+    repetitionsCompleted,
+    inhaleSec: currentConfig.inhaleSec,
+    hold1Sec: currentConfig.hold1Sec,
+    exhaleSec: currentConfig.exhaleSec,
+    hold2Sec: currentConfig.hold2Sec,
+  });
+
+  setHomeMessage({
+    tone: wasAborted ? "secondary" : "success",
+    text: wasAborted ? "Session saved (ended early)." : "Session saved.",
+  });
+  renderHome(
+    document.querySelector("#screen-home"),
+    selectedExercise,
+    currentConfig,
+    homeMessage
+  );
+  if (navigateHome) nav.show("home");
+}
+
+function startRunSession() {
+  if (!selectedExercise || !currentConfig) return;
+  const phases = buildPhases(currentConfig);
+  if (!phases.length) return;
+  stopRunTimer();
+  runState = {
+    active: true,
+    phases,
+    phaseIndex: 0,
+    secondsRemaining: phases[0].seconds,
+    repetitionsCompleted: 0,
+    repetitionsPlanned: Number(currentConfig.repetitions) || 0,
+    startedAt: new Date().toISOString(),
+  };
+  renderRunScreen();
+  runTimer = setInterval(() => {
+    if (!runState.active) return;
+    runState.secondsRemaining -= 1;
+    if (runState.secondsRemaining <= 0) {
+      runState.phaseIndex += 1;
+      if (runState.phaseIndex >= runState.phases.length) {
+        runState.repetitionsCompleted += 1;
+        if (runState.repetitionsCompleted >= runState.repetitionsPlanned) {
+          finishRun({ wasAborted: false });
+          return;
+        }
+        runState.phaseIndex = 0;
+      }
+      runState.secondsRemaining =
+        runState.phases[runState.phaseIndex]?.seconds ?? 0;
+    }
+    renderRunScreen();
+  }, 1000);
 }
 
 function renderExerciseItem(ex) {
@@ -277,8 +413,13 @@ const app = document.querySelector("#app");
 renderLayout(app);
 
 // Render screens once (sections stay mounted)
-renderHome(document.querySelector("#screen-home"), selectedExercise, currentConfig);
-renderRun(document.querySelector("#screen-run"), selectedExercise, currentConfig);
+renderHome(
+  document.querySelector("#screen-home"),
+  selectedExercise,
+  currentConfig,
+  homeMessage
+);
+renderRunScreen();
 renderHistory(document.querySelector("#screen-history"));
 renderMood(document.querySelector("#screen-mood"));
 renderExercisesView();
@@ -286,9 +427,13 @@ renderExercisesView();
 // GSAP hooks later (for now: placeholders)
 const nav = setupNav({
   onEnterRun: () => {
+    startRunSession();
     // later: start GSAP timeline on #breath-circle
   },
   onLeaveRun: () => {
+    if (runState.active) {
+      finishRun({ wasAborted: true, navigateHome: false });
+    }
     // later: stop/kill GSAP timeline
   },
 });
@@ -311,7 +456,12 @@ document.addEventListener("click", (e) => {
       hold2Sec: selectedExercise.defaultHold2,
       repetitions: selectedExercise.defaultRepetitions,
     };
-    renderHome(document.querySelector("#screen-home"), selectedExercise, currentConfig);
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
     renderExercisesView();
     return;
   }
@@ -330,7 +480,12 @@ document.addEventListener("click", (e) => {
   const confirmBtn = e.target.closest("[data-confirm-exercise]");
   if (confirmBtn) {
     currentView = "exercise-list";
-    renderHome(document.querySelector("#screen-home"), selectedExercise, currentConfig);
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
     renderExercisesView();
     nav.show("home");
     return;
@@ -390,7 +545,12 @@ document.addEventListener("click", (e) => {
 
   const startNowBtn = e.target.closest("[data-start-now]");
   if (startNowBtn) {
-    renderHome(document.querySelector("#screen-home"), selectedExercise, currentConfig);
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
     nav.show("home");
     return;
   }
@@ -411,10 +571,21 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  const endBtn = e.target.closest("[data-end-exercise]");
+  if (endBtn) {
+    finishRun({ wasAborted: true });
+    return;
+  }
+
   const backBtn = e.target.closest("[data-exercise-back]");
   if (backBtn) {
     currentView = "exercise-list";
-    renderHome(document.querySelector("#screen-home"), selectedExercise, currentConfig);
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
     renderExercisesView();
   }
 });

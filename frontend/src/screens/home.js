@@ -1,7 +1,12 @@
 import { exercises } from "../data/dummy.js";
 import { cycleDurationSec } from "../utils/duration.js";
 
-export function renderHome(el, selectedExercise = null, currentConfig = null) {
+export function renderHome(
+  el,
+  selectedExercise = null,
+  currentConfig = null,
+  message = null
+) {
   const ex = selectedExercise || exercises[0];
   const config =
     currentConfig || {
@@ -15,7 +20,15 @@ export function renderHome(el, selectedExercise = null, currentConfig = null) {
   const cycleSec = cycleDurationSec(config);
   const totalSec = cycleSec * Number(config.repetitions);
   const totalMin = Math.max(1, Math.round(totalSec / 60));
+  const messageBlock = message
+    ? `
+      <div class="alert alert-${message.tone || "secondary"} py-2 mb-3">
+        ${message.text}
+      </div>
+    `
+    : "";
   el.innerHTML = `
+    ${messageBlock}
     <div class="text-center mb-4">
       <h1 class="display-6 mb-2">${ex.name}</h1>
       <div class="text-secondary">
