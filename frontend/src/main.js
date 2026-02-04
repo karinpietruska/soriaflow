@@ -4,7 +4,7 @@ import "./style.css"; // keep this for your own overrides
 
 import { gsap } from "gsap";
 
-import { addSession, getExercises, getSessions } from "./data/store.js";
+import { addMoodEntry, addSession, getExercises, getSessions } from "./data/store.js";
 import { createPresetExercise } from "./data/exercisesService.js";
 import { cycleDurationSec } from "./utils/duration.js";
 import { renderLayout } from "./ui/layout.js";
@@ -39,6 +39,10 @@ let historyPresetSaved = false;
 let historyPreset = null;
 let historyStatusFilter = "all";
 let historySortOrder = "desc";
+
+let moodSelectedColor = "";
+let moodSavedMessage = "";
+let moodSavedTimeout = null;
 
 let runState = {
   active: false,
@@ -140,6 +144,13 @@ function renderHistoryView() {
     presetSaved: historyPresetSaved,
     statusFilter: historyStatusFilter,
     sortOrder: historySortOrder,
+  });
+}
+
+function renderMoodView() {
+  renderMood(document.querySelector("#screen-mood"), {
+    selectedColor: moodSelectedColor,
+    savedMessage: moodSavedMessage,
   });
 }
 
@@ -554,7 +565,7 @@ renderHome(
 );
 renderRunScreen();
 renderHistoryView();
-renderMood(document.querySelector("#screen-mood"));
+renderMoodView();
 renderExercisesView();
 
 // GSAP hooks later (for now: placeholders)
@@ -809,6 +820,30 @@ document.addEventListener("click", (e) => {
     );
     nav.show("home");
     return;
+  }
+
+  const moodColorBtn = e.target.closest("[data-mood-color]");
+  if (moodColorBtn) {
+    moodSelectedColor = moodColorBtn.dataset.moodColor;
+    moodSavedMessage = "";
+    renderMoodView();
+    return;
+  }
+
+  const moodSaveBtn = e.target.closest("[data-mood-save]");
+  if (moodSaveBtn && moodSelectedColor) {
+    addMoodEntry({
+      entryID: `m-${Date.now()}`,
+      timeStamp: new Date().toISOString(),
+      color: moodSelectedColor,
+    });
+    moodSavedMessage = "Mood saved.";
+    if (moodSavedTimeout) clearTimeout(moodSavedTimeout);
+    moodSavedTimeout = setTimeout(() => {
+      moodSavedMessage = "";
+      renderMoodView();
+    }, 2500);
+    renderMoodView();
   }
 });
 
