@@ -5,11 +5,11 @@ export function renderRun(el, runState) {
   const repetitionLabel = runState?.repetitionLabel || "0 / 0";
   el.innerHTML = `
     <h2 class="h4 mb-3">Run Exercise</h2>
-    <div class="text-light-emphasis fs-5 mb-3">
+    <div class="text-light-emphasis fs-4 mb-3">
       ${exName}
     </div>
     <div class="d-flex justify-content-center my-4">
-      <div id="breath-circle" class="rounded-circle" style="width:200px;height:200px;background:#5bc0de;"></div>
+      <div id="breath-circle" class="rounded-circle breath-circle breath-circle--run"></div>
     </div>
     <div class="text-center">
       <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap mb-4">

@@ -1,1 +1,12 @@
 /* Global styles */
+.breath-circle {
+  width: 160px;
+  height: 160px;
+  background: #5bc0de;
+  box-shadow: 0 0 0 10px rgba(91, 192, 222, 0.25);
+}
+
+.breath-circle--run {
+  width: 200px;
+  height: 200px;
+}

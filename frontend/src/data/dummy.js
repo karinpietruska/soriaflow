@@ -68,7 +68,7 @@ export const sessions = [
     exhaleSec: 5,
     hold2Sec: 0,
   },
-   {
+  {
     sessionID: "s-003",
     exerciseID: "box-3sec",
     startedAt: "2026-02-02T08:34:00Z",
@@ -81,7 +81,7 @@ export const sessions = [
     exhaleSec: 3,
     hold2Sec: 3,
   },
-   {
+  {
     sessionID: "s-004",
     exerciseID: "478",
     startedAt: "2026-02-02T08:40:00Z",
