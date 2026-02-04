@@ -61,3 +61,23 @@
 .text-exercise-name {
   color: #e3fafc;
 }
+
+.history-kv {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.history-kv__row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+}
+
+.history-kv__label {
+  color: #9aa3ad;
+  font-size: 0.95rem;
+}
+
+.history-kv__value {
+  color: #e9ecef;
+}

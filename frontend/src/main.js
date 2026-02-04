@@ -4,7 +4,7 @@ import "./style.css"; // keep this for your own overrides
 
 import { gsap } from "gsap";
 
-import { addSession, getExercises } from "./data/store.js";
+import { addSession, getExercises, getSessions } from "./data/store.js";
 import { createPresetExercise } from "./data/exercisesService.js";
 import { cycleDurationSec } from "./utils/duration.js";
 import { renderLayout } from "./ui/layout.js";
@@ -31,6 +31,14 @@ let presetError = "";
 let presetSaved = false;
 let homeMessage = null;
 let homeMessageTimeout = null;
+
+let historySelectedSessionId = null;
+let historyPresetName = "";
+let historyPresetError = "";
+let historyPresetSaved = false;
+let historyPreset = null;
+let historyStatusFilter = "all";
+let historySortOrder = "desc";
 
 let runState = {
   active: false,
@@ -124,6 +132,17 @@ function renderRunScreen() {
   }
 }
 
+function renderHistoryView() {
+  renderHistory(document.querySelector("#screen-history"), {
+    selectedSessionId: historySelectedSessionId,
+    presetName: historyPresetName,
+    presetError: historyPresetError,
+    presetSaved: historyPresetSaved,
+    statusFilter: historyStatusFilter,
+    sortOrder: historySortOrder,
+  });
+}
+
 function stopRunTimer() {
   if (runTimer) clearInterval(runTimer);
   runTimer = null;
@@ -214,24 +233,31 @@ function finishRun({ wasAborted, navigateHome = true }) {
   const repetitionsCompleted = wasAborted
     ? runState.repetitionsCompleted
     : runState.repetitionsPlanned;
+  const shouldLog = !wasAborted || repetitionsCompleted >= 1;
 
-  addSession({
-    sessionID: `s-${Date.now()}`,
-    exerciseID: selectedExercise.exerciseID,
-    startedAt: runState.startedAt,
-    endedAt,
-    wasAborted,
-    repetitionsPlanned: runState.repetitionsPlanned,
-    repetitionsCompleted,
-    inhaleSec: currentConfig.inhaleSec,
-    hold1Sec: currentConfig.hold1Sec,
-    exhaleSec: currentConfig.exhaleSec,
-    hold2Sec: currentConfig.hold2Sec,
-  });
+  if (shouldLog) {
+    addSession({
+      sessionID: `s-${Date.now()}`,
+      exerciseID: selectedExercise.exerciseID,
+      startedAt: runState.startedAt,
+      endedAt,
+      wasAborted,
+      repetitionsPlanned: runState.repetitionsPlanned,
+      repetitionsCompleted,
+      inhaleSec: currentConfig.inhaleSec,
+      hold1Sec: currentConfig.hold1Sec,
+      exhaleSec: currentConfig.exhaleSec,
+      hold2Sec: currentConfig.hold2Sec,
+    });
+  }
 
   setHomeMessage({
-    tone: wasAborted ? "secondary" : "success",
-    text: wasAborted ? "Session saved (ended early)." : "Session saved.",
+    tone: shouldLog ? (wasAborted ? "secondary" : "success") : "secondary",
+    text: shouldLog
+      ? wasAborted
+        ? "Session saved (ended early)."
+        : "Session saved."
+      : "Session ended (not saved).",
   });
   renderHome(
     document.querySelector("#screen-home"),
@@ -527,7 +553,7 @@ renderHome(
   homeMessage
 );
 renderRunScreen();
-renderHistory(document.querySelector("#screen-history"));
+renderHistoryView();
 renderMood(document.querySelector("#screen-mood"));
 renderExercisesView();
 
@@ -696,6 +722,94 @@ document.addEventListener("click", (e) => {
     );
     renderExercisesView();
   }
+
+  const historyRow = e.target.closest("[data-history-session-id]");
+  if (historyRow) {
+    const sessionId = historyRow.dataset.historySessionId;
+    const session = getSessions().find((s) => s.sessionID === sessionId);
+    if (!session) return;
+    const ex = getExercises().find((e) => e.exerciseID === session.exerciseID);
+    const cycle = cycleDurationSec(session);
+    historySelectedSessionId = sessionId;
+    historyPresetName = ex ? `${ex.name} (${cycle}s)` : "New preset";
+    historyPresetError = "";
+    historyPresetSaved = false;
+    historyPreset = null;
+    renderHistoryView();
+    return;
+  }
+
+  const historyClose = e.target.closest("[data-history-close],[data-history-back]");
+  if (historyClose) {
+    historySelectedSessionId = null;
+    historyPresetError = "";
+    historyPresetSaved = false;
+    historyPreset = null;
+    renderHistoryView();
+    return;
+  }
+
+  const historySave = e.target.closest("[data-history-save]");
+  if (historySave) {
+    const trimmedName = historyPresetName.trim();
+    if (!trimmedName) {
+      historyPresetError = "Please enter a preset name.";
+      renderHistoryView();
+      return;
+    }
+    try {
+      const session = getSessions().find(
+        (s) => s.sessionID === historySelectedSessionId
+      );
+      if (!session) return;
+      const preset = createPresetExercise({
+        name: trimmedName,
+        baseExercise: getExercises().find(
+          (e) => e.exerciseID === session.exerciseID
+        ),
+        defaults: {
+          defaultRepetitions: session.repetitionsPlanned,
+          defaultInhale: session.inhaleSec,
+          defaultHold1: session.hold1Sec,
+          defaultExhale: session.exhaleSec,
+          defaultHold2: session.hold2Sec,
+        },
+      });
+      historyPreset = preset;
+      historyPresetSaved = true;
+      historyPresetError = "";
+      renderHistoryView();
+      return;
+    } catch (err) {
+      historyPresetError = err?.message || "Failed to save preset.";
+      renderHistoryView();
+      return;
+    }
+  }
+
+  const historyStart = e.target.closest("[data-history-start]");
+  if (historyStart && historyPreset) {
+    selectedExercise = historyPreset;
+    currentConfig = {
+      inhaleSec: historyPreset.defaultInhale,
+      hold1Sec: historyPreset.defaultHold1,
+      exhaleSec: historyPreset.defaultExhale,
+      hold2Sec: historyPreset.defaultHold2,
+      repetitions: historyPreset.defaultRepetitions,
+    };
+    historySelectedSessionId = null;
+    historyPresetSaved = false;
+    historyPreset = null;
+    renderHistoryView();
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
+    nav.show("home");
+    return;
+  }
 });
 
 document.addEventListener("input", (e) => {
@@ -705,5 +819,29 @@ document.addEventListener("input", (e) => {
   if (presetError) {
     presetError = "";
     renderExercisesView();
+  }
+});
+
+document.addEventListener("input", (e) => {
+  const input = e.target.closest("[data-history-preset-name]");
+  if (!input || input.tagName !== "INPUT") return;
+  historyPresetName = input.value;
+  if (historyPresetError) {
+    historyPresetError = "";
+    renderHistoryView();
+  }
+});
+
+document.addEventListener("change", (e) => {
+  const filter = e.target.closest("[data-history-filter]");
+  if (filter) {
+    historyStatusFilter = filter.value;
+    renderHistoryView();
+    return;
+  }
+  const sort = e.target.closest("[data-history-sort]");
+  if (sort) {
+    historySortOrder = sort.value;
+    renderHistoryView();
   }
 });
