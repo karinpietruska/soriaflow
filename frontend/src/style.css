@@ -88,6 +88,27 @@
   color: #e3fafc;
 }
 
+.config-value {
+  display: inline-block;
+  min-width: 6ch;
+  text-align: center;
+}
+
+.config-value--narrow {
+  min-width: 6ch;
+}
+
+.config-control {
+  display: grid;
+  grid-template-columns: 24px 56px 24px;
+  align-items: center;
+  justify-items: center;
+}
+
+.config-control--reps {
+  grid-template-columns: 24px 56px 24px;
+}
+
 .history-kv {
   display: grid;
   gap: 0.35rem;

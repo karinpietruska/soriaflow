@@ -522,33 +522,33 @@ function renderConfigureExercise() {
           <div class="d-grid gap-2">
             <div class="d-flex justify-content-between align-items-center">
               <span>Inhale</span>
-              <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2 config-control">
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="inhaleSec" data-delta="-1">−</button>
-                <span>${config.inhaleSec} sec</span>
+                <span class="config-value">${config.inhaleSec} sec</span>
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="inhaleSec" data-delta="1">+</button>
               </div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
               <span>Hold after Inhale</span>
-              <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2 config-control">
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="hold1Sec" data-delta="-1">−</button>
-                <span>${config.hold1Sec} sec</span>
+                <span class="config-value">${config.hold1Sec} sec</span>
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="hold1Sec" data-delta="1">+</button>
               </div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
               <span>Exhale</span>
-              <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2 config-control">
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="exhaleSec" data-delta="-1">−</button>
-                <span>${config.exhaleSec} sec</span>
+                <span class="config-value">${config.exhaleSec} sec</span>
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="exhaleSec" data-delta="1">+</button>
               </div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
               <span>Hold after Exhale</span>
-              <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2 config-control">
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="hold2Sec" data-delta="-1">−</button>
-                <span>${config.hold2Sec} sec</span>
+                <span class="config-value">${config.hold2Sec} sec</span>
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="hold2Sec" data-delta="1">+</button>
               </div>
             </div>
@@ -561,9 +561,9 @@ function renderConfigureExercise() {
           <div class="text-uppercase text-muted small mb-3">Repetitions</div>
           <div class="d-flex justify-content-between align-items-center mb-2">
             <span>Repetitions</span>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 config-control config-control--reps">
               <button class="btn btn-outline-secondary btn-sm" data-adjust="repetitions" data-delta="-1">−</button>
-              <span>${config.repetitions}</span>
+              <span class="config-value config-value--narrow">${config.repetitions}</span>
               <button class="btn btn-outline-secondary btn-sm" data-adjust="repetitions" data-delta="1">+</button>
             </div>
           </div>
@@ -728,6 +728,10 @@ document.addEventListener("click", async (e) => {
     }
     if (target === "mood") {
       renderMoodView();
+    }
+    if (target === "exercises") {
+      currentView = "exercise-list";
+      renderExercisesView();
     }
   }
   const presetNameInput = e.target.closest("[data-preset-name]");
