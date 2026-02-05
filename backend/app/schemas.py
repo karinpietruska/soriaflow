@@ -5,6 +5,7 @@ from .models import ExerciseSource
 
 class BreathingExerciseCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=500)
     source: ExerciseSource = ExerciseSource.USER_PRESET
 
     defaultRepetitions: int = Field(ge=1, le=500)

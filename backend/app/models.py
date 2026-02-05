@@ -28,6 +28,7 @@ class BreathingExercise(Base):
     exerciseID: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
 
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     source: Mapped[ExerciseSource] = mapped_column(SAEnum(ExerciseSource), nullable=False)
 
     defaultRepetitions: Mapped[int] = mapped_column(Integer, nullable=False)
