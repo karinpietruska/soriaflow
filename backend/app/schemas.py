@@ -57,3 +57,16 @@ class ExerciseSessionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MoodEntryCreate(BaseModel):
+    color: str = Field(min_length=1, max_length=20)
+
+
+class MoodEntryOut(BaseModel):
+    entryID: str
+    timeStamp: datetime
+    color: str
+
+    class Config:
+        from_attributes = True

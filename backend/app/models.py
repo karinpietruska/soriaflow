@@ -96,4 +96,17 @@ class ExerciseSession(Base):
     def totalDuration(self) -> int:
         """Derived total duration of the session in seconds."""
         return self.cycleDuration * self.repetitionsCompleted
+
+
+class MoodEntry(Base):
+    __tablename__ = "mood_entries"
+
+    entryID: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        index=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+    timeStamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    color: Mapped[str] = mapped_column(String(20), nullable=False)
     

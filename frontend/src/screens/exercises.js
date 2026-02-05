@@ -1,8 +1,8 @@
-import { exercises } from "../data/dummy.js";
+import { getExercises } from "../data/store.js";
 import { defaultCycleDuration, defaultTotalDuration } from "../utils/duration.js";
 
 export function renderExercises(el) {
-  const rows = exercises
+  const rows = getExercises()
     .map((ex) => {
       const badge = ex.source === "DEFAULT" ? "secondary" : "warning";
       return `

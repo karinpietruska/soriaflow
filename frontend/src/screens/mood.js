@@ -28,9 +28,13 @@ export function renderMood(
 
   const entries = getMoodEntries();
   const byDay = new Map();
+  const toLocalKey = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
   entries.forEach((m) => {
     const d = new Date(m.timeStamp);
-    const key = d.toISOString().slice(0, 10);
+    const key = toLocalKey(d);
     if (!byDay.has(key)) {
       byDay.set(key, m);
     } else {
@@ -46,7 +50,7 @@ export function renderMood(
   for (let i = 29; i >= 0; i -= 1) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = toLocalKey(d);
     days.push({ key, entry: byDay.get(key) || null });
   }
   const moodGrid = days

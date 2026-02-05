@@ -2,20 +2,34 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Depends, Query, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from .db import Base, engine, get_db, SessionLocal
-from .models import BreathingExercise, ExerciseSource, ExerciseSession
+from .models import BreathingExercise, ExerciseSource, ExerciseSession, MoodEntry
 from .schemas import (
     BreathingExerciseCreate,
     BreathingExerciseOut,
     ExerciseSessionStart,
     ExerciseSessionFinish,
     ExerciseSessionOut,
+    MoodEntryCreate,
+    MoodEntryOut,
 )
 from .seed import seed_defaults
 
 app = FastAPI(title="SoriaFlow API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -120,3 +134,17 @@ def list_sessions(
         q = q.filter(ExerciseSession.startedAt <= end)
 
     return q.order_by(ExerciseSession.startedAt.desc()).all()
+
+
+@app.get("/moods", response_model=list[MoodEntryOut])
+def list_moods(db: Session = Depends(get_db)):
+    return db.query(MoodEntry).order_by(MoodEntry.timeStamp.desc()).all()
+
+
+@app.post("/moods", response_model=MoodEntryOut)
+def create_mood(payload: MoodEntryCreate, db: Session = Depends(get_db)):
+    entry = MoodEntry(color=payload.color)
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry

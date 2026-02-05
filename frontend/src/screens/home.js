@@ -1,4 +1,4 @@
-import { exercises } from "../data/dummy.js";
+import { getExercises } from "../data/store.js";
 import { cycleDurationSec } from "../utils/duration.js";
 
 export function renderHome(
@@ -7,7 +7,15 @@ export function renderHome(
   currentConfig = null,
   message = null
 ) {
-  const ex = selectedExercise || exercises[0];
+  const ex = selectedExercise || getExercises()[0];
+  if (!ex) {
+    el.innerHTML = `
+      <div class="alert alert-secondary">
+        No exercises available yet. Please try again shortly.
+      </div>
+    `;
+    return;
+  }
   const config =
     currentConfig || {
       inhaleSec: ex.defaultInhale,

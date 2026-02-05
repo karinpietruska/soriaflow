@@ -17,9 +17,8 @@ export function renderHistory(
   const exNameById = Object.fromEntries(
     exercises.map((e) => [e.exerciseID, e.name])
   );
-  const selectedSession = sessions.find((s) => s.sessionID === selectedSessionId);
-
   const filteredSessions = sessions
+    .filter((s) => s.repetitionsCompleted >= 1)
     .filter((s) => {
       if (statusFilter === "completed") return !s.wasAborted;
       if (statusFilter === "aborted") return s.wasAborted;
@@ -30,6 +29,9 @@ export function renderHistory(
       const bTime = new Date(b.startedAt).getTime();
       return sortOrder === "asc" ? aTime - bTime : bTime - aTime;
     });
+  const selectedSession = filteredSessions.find(
+    (s) => s.sessionID === selectedSessionId
+  );
 
   const historyItems = filteredSessions
     .map((s) => {
@@ -53,7 +55,7 @@ export function renderHistory(
           <div>
             <div class="fw-semibold">${exNameById[s.exerciseID] ?? s.exerciseID}</div>
             <small class="text-muted">
-              ${phases}s · ${s.repetitionsCompleted} reps · ${dateLabel} · ${timeLabel}
+              ${phases}s · ${s.repetitionsCompleted} reps completed · Completed at ${dateLabel} · ${timeLabel}
             </small>
           </div>
         </button>
@@ -118,12 +120,16 @@ export function renderHistory(
             <div class="modal-body">
               <div class="mb-3">
                 <div class="fw-semibold">${exNameById[selectedSession.exerciseID] ?? selectedSession.exerciseID}</div>
-                <small class="text-muted">${dateLabel} · ${timeLabel}</small>
+                <small class="text-muted">Completed at ${dateLabel} · ${timeLabel}</small>
               </div>
               <div class="mb-3 history-kv">
                 <div class="history-kv__row">
-                  <span class="history-kv__label">Repetitions</span>
+                  <span class="history-kv__label">Planned reps</span>
                   <span class="history-kv__value">${selectedSession.repetitionsPlanned}</span>
+                </div>
+                <div class="history-kv__row">
+                  <span class="history-kv__label">Completed reps</span>
+                  <span class="history-kv__value">${selectedSession.repetitionsCompleted}</span>
                 </div>
                 <div class="history-kv__row">
                   <span class="history-kv__label">Inhale</span>
@@ -144,6 +150,10 @@ export function renderHistory(
                 <div class="history-kv__row">
                   <span class="history-kv__label">Total duration</span>
                   <span class="history-kv__value">${totalLabel}</span>
+                </div>
+                <div class="history-kv__row">
+                  <span class="history-kv__label">Completed at</span>
+                  <span class="history-kv__value">${dateLabel} · ${timeLabel}</span>
                 </div>
               </div>
               <div class="mb-3">
@@ -171,6 +181,9 @@ export function renderHistory(
                         data-history-preset-name
                       />
                       ${presetError ? `<div class="text-danger small mt-2">${presetError}</div>` : ""}
+                    </div>
+                    <div class="text-secondary small mb-3">
+                      Presets save the planned exercise settings, not the completed session.
                     </div>
                     <div class="d-flex gap-2">
                       <button class="btn btn-primary" data-history-save>Save as preset</button>

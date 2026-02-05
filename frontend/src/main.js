@@ -4,8 +4,16 @@ import "./style.css"; // keep this for your own overrides
 
 import { gsap } from "gsap";
 
-import { addMoodEntry, addSession, getExercises, getSessions } from "./data/store.js";
+import {
+  getExercises,
+  getSessions,
+  loadExercises,
+  loadSessions,
+  loadMoods,
+} from "./data/store.js";
 import { createPresetExercise } from "./data/exercisesService.js";
+import { createMood } from "./api/moods.js";
+import { finishSession, startSession } from "./api/sessions.js";
 import { cycleDurationSec } from "./utils/duration.js";
 import { renderLayout } from "./ui/layout.js";
 import { setupNav } from "./ui/nav.js";
@@ -16,16 +24,8 @@ import { renderHistory } from "./screens/history.js";
 import { renderMood } from "./screens/mood.js";
 
 let currentView = "exercise-list"; // exercise-list | configure | preset-name
-let selectedExercise = getExercises()[0];
-let currentConfig = selectedExercise
-  ? {
-      inhaleSec: selectedExercise.defaultInhale,
-      hold1Sec: selectedExercise.defaultHold1,
-      exhaleSec: selectedExercise.defaultExhale,
-      hold2Sec: selectedExercise.defaultHold2,
-      repetitions: selectedExercise.defaultRepetitions,
-    }
-  : null;
+let selectedExercise = null;
+let currentConfig = null;
 let presetName = "";
 let presetError = "";
 let presetSaved = false;
@@ -52,9 +52,34 @@ let runState = {
   repetitionsCompleted: 0,
   repetitionsPlanned: 0,
   startedAt: null,
+  sessionID: null,
 };
 let runTimer = null;
 let breathTimeline = null;
+let exercisesLoading = true;
+let exercisesError = "";
+
+async function hydrateExercises() {
+  exercisesLoading = true;
+  exercisesError = "";
+  try {
+    await loadExercises();
+  } catch (err) {
+    exercisesError = err?.message || "Failed to load exercises.";
+  }
+  const list = getExercises();
+  selectedExercise = list[0] ?? null;
+  currentConfig = selectedExercise
+    ? {
+        inhaleSec: selectedExercise.defaultInhale,
+        hold1Sec: selectedExercise.defaultHold1,
+        exhaleSec: selectedExercise.defaultExhale,
+        hold2Sec: selectedExercise.defaultHold2,
+        repetitions: selectedExercise.defaultRepetitions,
+      }
+    : null;
+  exercisesLoading = false;
+}
 
 function isPresetNameTaken(name) {
   const normalized = name.trim().toLowerCase();
@@ -137,6 +162,19 @@ function renderRunScreen() {
 }
 
 function renderHistoryView() {
+  const visibleSessions = getSessions()
+    .filter((s) => s.repetitionsCompleted >= 1)
+    .filter((s) => {
+      if (historyStatusFilter === "completed") return !s.wasAborted;
+      if (historyStatusFilter === "aborted") return s.wasAborted;
+      return true;
+    });
+  if (
+    historySelectedSessionId &&
+    !visibleSessions.some((s) => s.sessionID === historySelectedSessionId)
+  ) {
+    historySelectedSessionId = null;
+  }
   renderHistory(document.querySelector("#screen-history"), {
     selectedSessionId: historySelectedSessionId,
     presetName: historyPresetName,
@@ -235,7 +273,7 @@ function stopBreathAnimation() {
   }
 }
 
-function finishRun({ wasAborted, navigateHome = true }) {
+async function finishRun({ wasAborted, navigateHome = true }) {
   if (!runState.active) return;
   stopBreathAnimation();
   stopRunTimer();
@@ -244,32 +282,34 @@ function finishRun({ wasAborted, navigateHome = true }) {
   const repetitionsCompleted = wasAborted
     ? runState.repetitionsCompleted
     : runState.repetitionsPlanned;
-  const shouldLog = !wasAborted || repetitionsCompleted >= 1;
+  const shouldLog = repetitionsCompleted >= 1;
 
-  if (shouldLog) {
-    addSession({
-      sessionID: `s-${Date.now()}`,
-      exerciseID: selectedExercise.exerciseID,
-      startedAt: runState.startedAt,
-      endedAt,
-      wasAborted,
-      repetitionsPlanned: runState.repetitionsPlanned,
-      repetitionsCompleted,
-      inhaleSec: currentConfig.inhaleSec,
-      hold1Sec: currentConfig.hold1Sec,
-      exhaleSec: currentConfig.exhaleSec,
-      hold2Sec: currentConfig.hold2Sec,
-    });
+  if (runState.sessionID) {
+    try {
+      await finishSession(runState.sessionID, {
+        wasAborted,
+        repetitionsCompleted,
+      });
+      await loadSessions();
+      renderHistoryView();
+    } catch (err) {
+      setHomeMessage({
+        tone: "secondary",
+        text: err?.message || "Failed to save session.",
+      });
+    }
   }
 
-  setHomeMessage({
-    tone: shouldLog ? (wasAborted ? "secondary" : "success") : "secondary",
-    text: shouldLog
-      ? wasAborted
-        ? "Session saved (ended early)."
-        : "Session saved."
-      : "Session ended (not saved).",
-  });
+  if (!homeMessage) {
+    setHomeMessage({
+      tone: shouldLog ? (wasAborted ? "secondary" : "success") : "secondary",
+      text: shouldLog
+        ? wasAborted
+          ? "Session saved (ended early)."
+          : "Session saved."
+        : "Session ended early.",
+    });
+  }
   renderHome(
     document.querySelector("#screen-home"),
     selectedExercise,
@@ -279,11 +319,28 @@ function finishRun({ wasAborted, navigateHome = true }) {
   if (navigateHome) nav.show("home");
 }
 
-function startRunSession() {
+async function startRunSession() {
   if (!selectedExercise || !currentConfig) return;
   const phases = buildPhases(currentConfig);
   if (!phases.length) return;
   stopRunTimer();
+  let startedSession = null;
+  try {
+    startedSession = await startSession({
+      exerciseID: selectedExercise.exerciseID,
+      repetitionsPlanned: Number(currentConfig.repetitions) || 0,
+      inhaleSec: currentConfig.inhaleSec,
+      hold1Sec: currentConfig.hold1Sec,
+      exhaleSec: currentConfig.exhaleSec,
+      hold2Sec: currentConfig.hold2Sec,
+    });
+  } catch (err) {
+    setHomeMessage({
+      tone: "secondary",
+      text: err?.message || "Failed to start session.",
+    });
+    return;
+  }
   runState = {
     active: true,
     phases,
@@ -291,7 +348,8 @@ function startRunSession() {
     secondsRemaining: phases[0].seconds,
     repetitionsCompleted: 0,
     repetitionsPlanned: Number(currentConfig.repetitions) || 0,
-    startedAt: new Date().toISOString(),
+    startedAt: startedSession?.startedAt ?? new Date().toISOString(),
+    sessionID: startedSession?.sessionID ?? null,
   };
   renderRunScreen();
   startBreathAnimation();
@@ -316,6 +374,9 @@ function startRunSession() {
 }
 
 function renderExerciseItem(ex) {
+  const description = ex.description
+    ? `<small class="text-muted d-block">${ex.description}</small>`
+    : "";
   return `
     <button
       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
@@ -323,10 +384,11 @@ function renderExerciseItem(ex) {
     >
       <div>
         <div class="fw-semibold">${ex.name}</div>
-        <small class="text-muted">
+        <small class="text-muted d-block">
           ${ex.defaultRepetitions} reps · 
           ${ex.defaultInhale}-${ex.defaultHold1}-${ex.defaultExhale}-${ex.defaultHold2}s
         </small>
+        ${description}
       </div>
       <span class="text-muted">&rsaquo;</span>
     </button>
@@ -335,6 +397,30 @@ function renderExerciseItem(ex) {
 
 function renderExerciseSelection() {
   const list = getExercises();
+  if (exercisesLoading) {
+    return `
+      <section class="container my-4">
+        <h2 class="mb-3">Exercises</h2>
+        <div class="text-muted small">Loading exercises...</div>
+      </section>
+    `;
+  }
+  if (exercisesError) {
+    return `
+      <section class="container my-4">
+        <h2 class="mb-3">Exercises</h2>
+        <div class="alert alert-secondary">${exercisesError}</div>
+      </section>
+    `;
+  }
+  if (!list.length) {
+    return `
+      <section class="container my-4">
+        <h2 class="mb-3">Exercises</h2>
+        <div class="text-muted small">No exercises available.</div>
+      </section>
+    `;
+  }
   const defaultExercises = list.filter((e) => e.source === "DEFAULT");
   const userPresets = list.filter((e) => e.source === "USER_PRESET");
 
@@ -556,17 +642,36 @@ function renderExercisesView() {
 const app = document.querySelector("#app");
 renderLayout(app);
 
-// Render screens once (sections stay mounted)
-renderHome(
-  document.querySelector("#screen-home"),
-  selectedExercise,
-  currentConfig,
-  homeMessage
-);
-renderRunScreen();
-renderHistoryView();
-renderMoodView();
-renderExercisesView();
+async function initializeApp() {
+  await hydrateExercises();
+  try {
+    await loadSessions();
+  } catch (err) {
+    setHomeMessage({
+      tone: "secondary",
+      text: err?.message || "Failed to load session history.",
+    });
+  }
+  try {
+    await loadMoods();
+  } catch (err) {
+    setHomeMessage({
+      tone: "secondary",
+      text: err?.message || "Failed to load moods.",
+    });
+  }
+  // Render screens once (sections stay mounted)
+  renderHome(
+    document.querySelector("#screen-home"),
+    selectedExercise,
+    currentConfig,
+    homeMessage
+  );
+  renderRunScreen();
+  renderHistoryView();
+  renderMoodView();
+  renderExercisesView();
+}
 
 // GSAP hooks later (for now: placeholders)
 const nav = setupNav({
@@ -583,7 +688,9 @@ const nav = setupNav({
   },
 });
 
-document.addEventListener("click", (e) => {
+initializeApp();
+
+document.addEventListener("click", async (e) => {
   const presetNameInput = e.target.closest("[data-preset-name]");
   if (presetNameInput && presetNameInput.tagName === "INPUT") {
     presetName = presetNameInput.value;
@@ -832,18 +939,24 @@ document.addEventListener("click", (e) => {
 
   const moodSaveBtn = e.target.closest("[data-mood-save]");
   if (moodSaveBtn && moodSelectedColor) {
-    addMoodEntry({
-      entryID: `m-${Date.now()}`,
-      timeStamp: new Date().toISOString(),
-      color: moodSelectedColor,
-    });
-    moodSavedMessage = "Mood saved.";
-    if (moodSavedTimeout) clearTimeout(moodSavedTimeout);
-    moodSavedTimeout = setTimeout(() => {
-      moodSavedMessage = "";
+    try {
+      await createMood({ color: moodSelectedColor });
+      await loadMoods();
+      moodSavedMessage = "Mood saved.";
+      if (moodSavedTimeout) clearTimeout(moodSavedTimeout);
+      moodSavedTimeout = setTimeout(() => {
+        moodSavedMessage = "";
+        renderMoodView();
+      }, 2500);
       renderMoodView();
-    }, 2500);
-    renderMoodView();
+    } catch (err) {
+      moodSavedMessage = "";
+      setHomeMessage({
+        tone: "secondary",
+        text: err?.message || "Failed to save mood.",
+      });
+      renderMoodView();
+    }
   }
 });
 
