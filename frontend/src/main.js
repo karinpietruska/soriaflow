@@ -43,6 +43,14 @@ let historySortOrder = "desc";
 let moodSelectedColor = "";
 let moodSavedMessage = "";
 let moodSavedTimeout = null;
+let autoLogMoodAfterExercise = true;
+let moodAutoPromptActive = false;
+
+const MOOD_AUTO_PROMPT_KEY = "autoLogMoodAfterExercise";
+const storedAutoPrompt = localStorage.getItem(MOOD_AUTO_PROMPT_KEY);
+if (storedAutoPrompt !== null) {
+  autoLogMoodAfterExercise = storedAutoPrompt === "true";
+}
 
 let runState = {
   active: false,
@@ -141,6 +149,7 @@ function renderRunScreen() {
 
   if (nameEl) nameEl.textContent = selectedExercise?.name || "Exercise";
   if (metaEl && currentConfig) {
+    const phases = `${currentConfig.inhaleSec}-${currentConfig.hold1Sec}-${currentConfig.exhaleSec}-${currentConfig.hold2Sec}`;
     const cycleSec = cycleDurationSec({
       inhaleSec: currentConfig.inhaleSec,
       hold1Sec: currentConfig.hold1Sec,
@@ -148,7 +157,7 @@ function renderRunScreen() {
       hold2Sec: currentConfig.hold2Sec,
     });
     const totalMin = Math.max(1, Math.round((cycleSec * currentConfig.repetitions) / 60));
-    metaEl.textContent = `Cycle: ${cycleSec}s · Total: ${totalMin} min · Reps: ${currentConfig.repetitions}`;
+    metaEl.textContent = `Phases: ${phases} · Total: ${totalMin} min · Reps: ${currentConfig.repetitions}`;
   }
   if (phaseEl) phaseEl.textContent = phase?.label ?? "Ready";
   if (timeEl) {
@@ -189,6 +198,7 @@ function renderMoodView() {
   renderMood(document.querySelector("#screen-mood"), {
     selectedColor: moodSelectedColor,
     savedMessage: moodSavedMessage,
+    autoPrompt: autoLogMoodAfterExercise,
   });
 }
 
@@ -316,7 +326,18 @@ async function finishRun({ wasAborted, navigateHome = true }) {
     currentConfig,
     homeMessage
   );
-  if (navigateHome) nav.show("home");
+  if (navigateHome) {
+    if (!wasAborted && autoLogMoodAfterExercise) {
+      moodSelectedColor = "";
+      moodSavedMessage = "";
+      moodAutoPromptActive = true;
+      renderMoodView();
+      nav.show("mood");
+    } else {
+      moodAutoPromptActive = false;
+      nav.show("home");
+    }
+  }
 }
 
 async function startRunSession() {
@@ -691,6 +712,24 @@ const nav = setupNav({
 initializeApp();
 
 document.addEventListener("click", async (e) => {
+  const navBtn = e.target.closest("[data-nav]");
+  if (navBtn) {
+    const target = navBtn.dataset.nav;
+    if (target === "home") {
+      renderHome(
+        document.querySelector("#screen-home"),
+        selectedExercise,
+        currentConfig,
+        homeMessage
+      );
+    }
+    if (target === "history") {
+      renderHistoryView();
+    }
+    if (target === "mood") {
+      renderMoodView();
+    }
+  }
   const presetNameInput = e.target.closest("[data-preset-name]");
   if (presetNameInput && presetNameInput.tagName === "INPUT") {
     presetName = presetNameInput.value;
@@ -949,6 +988,10 @@ document.addEventListener("click", async (e) => {
         renderMoodView();
       }, 2500);
       renderMoodView();
+      if (moodAutoPromptActive) {
+        moodAutoPromptActive = false;
+        nav.show("home");
+      }
     } catch (err) {
       moodSavedMessage = "";
       setHomeMessage({
@@ -991,5 +1034,12 @@ document.addEventListener("change", (e) => {
   if (sort) {
     historySortOrder = sort.value;
     renderHistoryView();
+    return;
+  }
+  const moodAuto = e.target.closest("[data-mood-auto-prompt]");
+  if (moodAuto && moodAuto.type === "checkbox") {
+    autoLogMoodAfterExercise = moodAuto.checked;
+    localStorage.setItem(MOOD_AUTO_PROMPT_KEY, String(autoLogMoodAfterExercise));
+    renderMoodView();
   }
 });

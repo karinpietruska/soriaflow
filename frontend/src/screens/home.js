@@ -43,7 +43,7 @@ export function renderHome(
     <div class="mb-3">
       <div class="text-exercise-name fs-2 mb-2">${ex.name}</div>
       <div class="text-secondary fs-6">
-        Cycle: ${cycleSec}s · Total: ${totalMin} min · Reps: ${config.repetitions}
+        Phases: ${config.inhaleSec}-${config.hold1Sec}-${config.exhaleSec}-${config.hold2Sec} · Total: ${totalMin} min · Reps: ${config.repetitions}
       </div>
     </div>
 

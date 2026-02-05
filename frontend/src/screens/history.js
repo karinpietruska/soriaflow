@@ -17,6 +17,17 @@ export function renderHistory(
   const exNameById = Object.fromEntries(
     exercises.map((e) => [e.exerciseID, e.name])
   );
+  const formatDate = (d) =>
+    d.toLocaleDateString(undefined, {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  const formatTime = (d) =>
+    d.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   const filteredSessions = sessions
     .filter((s) => s.repetitionsCompleted >= 1)
     .filter((s) => {
@@ -37,15 +48,8 @@ export function renderHistory(
     .map((s) => {
       const phases = `${s.inhaleSec}-${s.hold1Sec}-${s.exhaleSec}-${s.hold2Sec}`;
       const date = new Date(s.startedAt);
-      const dateLabel = date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-      const timeLabel = date.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const dateLabel = formatDate(date);
+      const timeLabel = formatTime(date);
       return `
         <button
           type="button"
@@ -66,15 +70,8 @@ export function renderHistory(
   const moodItems = getMoodEntries()
     .map((s) => {
       const date = new Date(s.timeStamp);
-      const dateLabel = date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-      const timeLabel = date.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const dateLabel = formatDate(date);
+      const timeLabel = formatTime(date);
       return `
         <div class="list-group-item d-flex align-items-center gap-2">
           <span
@@ -93,15 +90,8 @@ export function renderHistory(
     const cycle = cycleDurationSec(selectedSession);
     const total = totalDurationSec(selectedSession);
     const date = new Date(selectedSession.startedAt);
-    const dateLabel = date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-    const timeLabel = date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const dateLabel = formatDate(date);
+    const timeLabel = formatTime(date);
     const totalMin = Math.floor(total / 60);
     const totalSec = total % 60;
     const totalLabel =

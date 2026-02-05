@@ -12,7 +12,7 @@ const MOOD_COLORS = [
 
 export function renderMood(
   el,
-  { selectedColor = "", savedMessage = "" } = {}
+  { selectedColor = "", savedMessage = "", autoPrompt = true } = {}
 ) {
   const palette = MOOD_COLORS.map(
     (m) => `
@@ -32,6 +32,11 @@ export function renderMood(
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
       d.getDate()
     ).padStart(2, "0")}`;
+  const formatDate = (d) =>
+    d.toLocaleDateString(undefined, {
+      day: "2-digit",
+      month: "short",
+    });
   entries.forEach((m) => {
     const d = new Date(m.timeStamp);
     const key = toLocalKey(d);
@@ -57,10 +62,7 @@ export function renderMood(
     .map((d) => {
       const color = d.entry ? d.entry.color : "transparent";
       const label = d.entry
-        ? new Date(d.entry.timeStamp).toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-          })
+        ? formatDate(new Date(d.entry.timeStamp))
         : d.key;
       return `
         <div
@@ -90,6 +92,18 @@ export function renderMood(
         }>
           Save mood
         </button>
+      </div>
+      <div class="form-check mt-3">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="mood-auto-prompt"
+          data-mood-auto-prompt
+          ${autoPrompt ? "checked" : ""}
+        />
+        <label class="form-check-label" for="mood-auto-prompt">
+          Prompt for mood after completing an exercise
+        </label>
       </div>
     </div>
     <h3 class="h5 mb-2 mt-5">Mood Summary</h3>
