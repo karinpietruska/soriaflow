@@ -2,12 +2,13 @@ export function renderLayout(appEl) {
   appEl.innerHTML = `
     <div class="min-vh-100 bg-dark text-light">
       <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary px-3">
-        <span class="navbar-brand mb-0 h1">SoriaFlow</span>
+        <button class="nav-brand btn btn-link p-0 text-decoration-none text-light" data-nav="home">
+          SoriaFlow
+        </button>
 
-        <div class="ms-auto d-flex gap-3">
+        <div class="nav-links ms-auto d-flex gap-3">
           <button class="btn btn-sm btn-outline-light" data-nav="home">Home</button>
           <button class="btn btn-sm btn-outline-light" data-nav="exercises">Exercises</button>
-          <button class="btn btn-sm btn-outline-light" data-nav="run">Run</button>
           <button class="btn btn-sm btn-outline-light" data-nav="history">History</button>
           <button class="btn btn-sm btn-outline-light" data-nav="mood">Mood</button>
         </div>

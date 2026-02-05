@@ -39,28 +39,30 @@ export function renderHome(
       </div>
     </div>
 
-    <div class="d-flex justify-content-center my-4">
-      <div class="rounded-circle breath-circle breath-circle--run"></div>
-    </div>
+    <div class="text-center run-stack">
+      <div class="d-flex justify-content-center my-4 run-hero">
+        <div class="rounded-circle breath-circle breath-circle--run breath-circle--start"></div>
+      </div>
 
-    <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap mb-4 run-info-row">
-      <div class="px-3 run-info-item">
-        <div class="text-secondary small fs-6">Phase</div>
-        <div class="fs-3">Ready</div>
+      <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap mb-4 run-info-row">
+        <div class="px-3 run-info-item">
+          <div class="text-secondary small fs-6">Phase</div>
+          <div class="fs-3">Ready</div>
+        </div>
+        <div class="px-3 run-info-item">
+          <div class="text-secondary small fs-6">Time</div>
+          <div class="fs-3">0s</div>
+        </div>
+        <div class="px-3 run-info-item">
+          <div class="text-secondary small fs-6">Repetition</div>
+          <div class="fs-3">0 / ${config.repetitions}</div>
+        </div>
       </div>
-      <div class="px-3 run-info-item">
-        <div class="text-secondary small fs-6">Time</div>
-        <div class="fs-3">0s</div>
-      </div>
-      <div class="px-3 run-info-item">
-        <div class="text-secondary small fs-6">Repetition</div>
-        <div class="fs-3">0 / ${config.repetitions}</div>
-      </div>
-    </div>
 
-    <div class="d-flex justify-content-center gap-3 flex-wrap run-actions">
-      <button class="btn btn-info btn-lg" data-nav="run">Start Exercise</button>
-      <button class="btn btn-outline-light btn-lg" data-nav="exercises">${chooseLabel}</button>
+      <div class="d-flex justify-content-center gap-3 flex-wrap run-actions">
+        <button class="btn btn-info btn-lg" data-nav="run">Start Exercise</button>
+        <button class="btn btn-outline-light btn-lg" data-nav="exercises">${chooseLabel}</button>
+      </div>
     </div>
   `;
 }

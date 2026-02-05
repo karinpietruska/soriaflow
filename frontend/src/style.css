@@ -13,6 +13,11 @@
   height: 200px;
 }
 
+.breath-circle--start {
+  transform: scale(0.85);
+  transform-origin: center;
+}
+
 .breath-ring {
   position: absolute;
   inset: 0;
@@ -43,6 +48,27 @@
 
 .run-actions {
   margin-top: 2.2rem;
+}
+
+@media (max-width: 576px) {
+  .run-stack {
+    margin-top: clamp(2rem, 10vh, 5rem);
+    padding-bottom: 2.5rem;
+  }
+
+  .run-hero {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .run-info-row {
+    gap: 0.5rem !important;
+    min-width: auto;
+  }
+
+  .run-info-item {
+    flex: 0 0 90px;
+  }
 }
 
 .run-title {
@@ -82,6 +108,24 @@
   color: #e9ecef;
 }
 
+.nav-brand {
+  font-weight: 600;
+}
+
+@media (max-width: 576px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
 .mood-palette {
   display: flex;
   flex-wrap: wrap;
@@ -96,6 +140,12 @@
   cursor: pointer;
 }
 
+@media (max-width: 400px) {
+  .mood-palette {
+    max-width: 320px;
+  }
+}
+
 .mood-swatch--active {
   border-color: #e9ecef;
   box-shadow: 0 0 0 4px rgba(233, 236, 239, 0.15);
@@ -103,8 +153,14 @@
 
 .mood-summary {
   display: grid;
-  grid-template-columns: repeat(30, 16px);
+  grid-template-columns: repeat(15, 16px);
   gap: 6px;
+}
+
+@media (min-width: 992px) {
+  .mood-summary {
+    grid-template-columns: repeat(30, 16px);
+  }
 }
 
 .mood-day {
