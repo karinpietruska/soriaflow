@@ -1,6 +1,6 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
-import "./style.css"; // keep this for your own overrides
+import "./style.css";
 
 import { gsap } from "gsap";
 
@@ -294,6 +294,7 @@ async function finishRun({ wasAborted, navigateHome = true }) {
     : runState.repetitionsPlanned;
   const shouldLog = repetitionsCompleted >= 1;
 
+  // Session is created on run start; finishing only records the outcome.
   if (runState.sessionID) {
     try {
       await finishSession(runState.sessionID, {
@@ -395,9 +396,6 @@ async function startRunSession() {
 }
 
 function renderExerciseItem(ex) {
-  const description = ex.description
-    ? `<small class="text-muted d-block">${ex.description}</small>`
-    : "";
   return `
     <button
       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
@@ -409,7 +407,6 @@ function renderExerciseItem(ex) {
           ${ex.defaultRepetitions} reps · 
           ${ex.defaultInhale}-${ex.defaultHold1}-${ex.defaultExhale}-${ex.defaultHold2}s
         </small>
-        ${description}
       </div>
       <span class="text-muted">&rsaquo;</span>
     </button>
@@ -571,6 +568,15 @@ function renderConfigureExercise() {
         </div>
       </div>
 
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="text-uppercase text-muted small mb-1">Exercise Description</div>
+          <div class="text-muted" style="white-space: pre-line;">
+            ${ex.description || "No description available."}
+          </div>
+        </div>
+      </div>
+
       <div class="d-flex flex-wrap gap-2">
         <button class="btn btn-primary" data-confirm-exercise>Confirm</button>
         <button class="btn btn-outline-secondary" data-save-preset>Save as Preset</button>
@@ -694,18 +700,15 @@ async function initializeApp() {
   renderExercisesView();
 }
 
-// GSAP hooks later (for now: placeholders)
 const nav = setupNav({
   onEnterRun: () => {
     startRunSession();
-    // later: start GSAP timeline on #breath-circle
   },
   onLeaveRun: () => {
     if (runState.active) {
       finishRun({ wasAborted: true, navigateHome: false });
     }
     stopBreathAnimation();
-    // later: stop/kill GSAP timeline
   },
 });
 

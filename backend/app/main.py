@@ -34,7 +34,6 @@ app.add_middleware(
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-# Seed default exercises (simple approach for this project)
 with SessionLocal() as db:
     seed_defaults(db)
 

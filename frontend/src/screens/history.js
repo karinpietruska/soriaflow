@@ -28,6 +28,7 @@ export function renderHistory(
       hour: "2-digit",
       minute: "2-digit",
     });
+  // Keep history focused on sessions with at least one completed rep.
   const filteredSessions = sessions
     .filter((s) => s.repetitionsCompleted >= 1)
     .filter((s) => {
