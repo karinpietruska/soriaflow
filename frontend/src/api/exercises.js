@@ -17,3 +17,16 @@ export async function fetchExercises({ source } = {}) {
   }
   return response.json();
 }
+
+export async function createExercise(payload) {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/exercises`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to create exercise (${response.status})`);
+  }
+  return response.json();
+}

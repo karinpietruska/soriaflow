@@ -79,6 +79,8 @@ async function hydrateExercises() {
   selectedExercise = list[0] ?? null;
   currentConfig = selectedExercise
     ? {
+        exerciseID: selectedExercise.exerciseID,
+      exerciseName: selectedExercise.name,
         inhaleSec: selectedExercise.defaultInhale,
         hold1Sec: selectedExercise.defaultHold1,
         exhaleSec: selectedExercise.defaultExhale,
@@ -343,6 +345,22 @@ async function finishRun({ wasAborted, navigateHome = true }) {
 
 async function startRunSession() {
   if (!selectedExercise || !currentConfig) return;
+  if (currentConfig.exerciseID) {
+    const matched =
+      getExercises().find((ex) => ex.exerciseID === currentConfig.exerciseID) ||
+      null;
+    selectedExercise =
+      matched ||
+      selectedExercise || {
+        exerciseID: currentConfig.exerciseID,
+        name: currentConfig.exerciseName || "Exercise",
+        defaultInhale: currentConfig.inhaleSec,
+        defaultHold1: currentConfig.hold1Sec,
+        defaultExhale: currentConfig.exhaleSec,
+        defaultHold2: currentConfig.hold2Sec,
+        defaultRepetitions: currentConfig.repetitions,
+      };
+  }
   const phases = buildPhases(currentConfig);
   if (!phases.length) return;
   stopRunTimer();
@@ -361,7 +379,8 @@ async function startRunSession() {
       tone: "secondary",
       text: err?.message || "Failed to start session.",
     });
-    return;
+    // Continue locally even if backend session fails.
+    startedSession = null;
   }
   runState = {
     active: true,
@@ -447,14 +466,14 @@ function renderExerciseSelection() {
       <h2 class="mb-3">Exercises</h2>
 
       <div class="mb-4">
-        <h5 class="text-muted">Default Exercises</h5>
+        <h5 class="text-light">Default Exercises</h5>
         <div class="list-group">
           ${defaultExercises.map(renderExerciseItem).join("")}
         </div>
       </div>
 
       <div>
-        <h5 class="text-muted">My Presets (${userPresets.length})</h5>
+        <h5 class="text-light">Your Presets (${userPresets.length})</h5>
         <div class="list-group">
           ${
             userPresets.length
@@ -727,9 +746,15 @@ document.addEventListener("click", async (e) => {
       );
     }
     if (target === "history") {
+      try {
+        await loadExercises();
+      } catch (err) {
+        // Ignore load errors here; history can still render.
+      }
       renderHistoryView();
     }
     if (target === "mood") {
+      moodAutoPromptActive = false;
       renderMoodView();
     }
     if (target === "exercises") {
@@ -748,6 +773,8 @@ document.addEventListener("click", async (e) => {
     selectedExercise = getExercises().find((ex) => ex.exerciseID === exerciseID);
     currentView = "configure";
     currentConfig = {
+      exerciseID: selectedExercise.exerciseID,
+      exerciseName: selectedExercise.name,
       inhaleSec: selectedExercise.defaultInhale,
       hold1Sec: selectedExercise.defaultHold1,
       exhaleSec: selectedExercise.defaultExhale,
@@ -818,7 +845,7 @@ document.addEventListener("click", async (e) => {
       return;
     }
     try {
-      const preset = createPresetExercise({
+      const preset = await createPresetExercise({
         name: trimmedName,
         baseExercise: selectedExercise,
         defaults: {
@@ -830,6 +857,11 @@ document.addEventListener("click", async (e) => {
         },
       });
       selectedExercise = preset;
+      currentConfig = {
+        ...currentConfig,
+        exerciseID: preset.exerciseID,
+        exerciseName: preset.name,
+      };
       presetSaved = true;
     } catch (err) {
       presetError = err?.message || "Failed to save preset.";
@@ -926,7 +958,7 @@ document.addEventListener("click", async (e) => {
         (s) => s.sessionID === historySelectedSessionId
       );
       if (!session) return;
-      const preset = createPresetExercise({
+      const preset = await createPresetExercise({
         name: trimmedName,
         baseExercise: getExercises().find(
           (e) => e.exerciseID === session.exerciseID
@@ -955,6 +987,8 @@ document.addEventListener("click", async (e) => {
   if (historyStart && historyPreset) {
     selectedExercise = historyPreset;
     currentConfig = {
+      exerciseID: historyPreset.exerciseID,
+      exerciseName: historyPreset.name,
       inhaleSec: historyPreset.defaultInhale,
       hold1Sec: historyPreset.defaultHold1,
       exhaleSec: historyPreset.defaultExhale,
