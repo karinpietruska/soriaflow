@@ -108,7 +108,9 @@ export function renderMood(
     </div>
     <h3 class="h5 mb-2 mt-5">Mood Summary</h3>
     <div class="text-secondary small mb-3">
-      Each square represents the last mood logged for a day over the past 30 days. Days are ordered from top-left to bottom-right (oldest to newest). Empty squares mean no mood was logged.
+      Each square shows the last mood logged on a given day over the past 30 days.
+      Days are ordered from top-left to bottom-right (oldest to newest).
+      Empty squares indicate that no mood was logged on that day.
     </div>
     <div class="mood-summary">${moodGrid}</div>
   `;

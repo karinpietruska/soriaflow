@@ -177,8 +177,8 @@ export function renderHistory(
                       Presets save the planned exercise settings, not the completed session.
                     </div>
                     <div class="d-flex gap-2">
-                      <button class="btn btn-primary" data-history-save>Save as preset</button>
-                      <button class="btn btn-outline-light" data-history-back>Close</button>
+                      <button class="btn btn-primary" data-history-back>Close</button>
+                      <button class="btn btn-outline-light" data-history-save>Save as preset</button>
                     </div>
                   `
               }

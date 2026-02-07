@@ -796,7 +796,8 @@ document.addEventListener("click", async (e) => {
     const field = adjustBtn.dataset.adjust;
     const delta = Number(adjustBtn.dataset.delta || 0);
     if (!currentConfig) return;
-    const next = Math.max(0, Number(currentConfig[field]) + delta);
+    const minValue = field === "repetitions" ? 1 : 0;
+    const next = Math.max(minValue, Number(currentConfig[field]) + delta);
     currentConfig = { ...currentConfig, [field]: next };
     renderExercisesView();
     return;

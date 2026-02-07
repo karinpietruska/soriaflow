@@ -70,7 +70,10 @@ class ExerciseSession(Base):
         index=True,
     )
 
-    startedAt: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    startedAt: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
 
     endedAt: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
