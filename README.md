@@ -109,7 +109,7 @@ Stored entities include:
 
 ## Project Status
 
-This project represents a completed academic software engineering project.
+This project was developed as part of an academic context.
 The current implementation focuses on a clear, minimal feature set and a locally executable architecture.
 
 Potential future extensions include:
