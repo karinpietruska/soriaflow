@@ -1,5 +1,5 @@
 import { createExercise } from "../api/exercises.js";
-import { addExercise, getExercises } from "./store.js";
+import { getExercises, loadExercises } from "./store.js";
 
 export async function createPresetExercise({ name, baseExercise, defaults }) {
   const normalized = name.trim().toLowerCase();
@@ -22,6 +22,6 @@ export async function createPresetExercise({ name, baseExercise, defaults }) {
   };
 
   const preset = await createExercise(payload);
-  addExercise(preset);
+  await loadExercises();
   return preset;
 }
