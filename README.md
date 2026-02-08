@@ -70,6 +70,8 @@ uvicorn app.main:app --reload
 The backend will be available at:
 http://127.0.0.1:8000
 
+For more backend details, see `backend/README.md`.
+
 
 ### Frontend Setup
 
@@ -88,6 +90,9 @@ http://localhost:5173
 All application data is stored locally in a SQLite database file.
 No external services, cloud storage, or third-party APIs are used.
 
+If you change database schemas or default exercise seed data, delete `backend/app.db`
+and restart the backend to recreate tables and seed defaults.
+
 Stored entities include:
 - Breathing exercises (including user-defined presets)
 - Breathing sessions
@@ -99,7 +104,7 @@ Stored entities include:
 - Breathing animations and timers run entirely in the browser
 - A breathing session is created when an exercise starts and finalized when it ends or is aborted
 - Sessions without at least one completed repetition are not shown in the history view
-- Mood logging after a breathing exercise is optional and can be enabled or disabled by the user
+- Mood logging is after an exercise optional and can be deactivated by the user
 
 
 ## Project Status
