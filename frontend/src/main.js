@@ -346,6 +346,22 @@ async function finishRun({ wasAborted, navigateHome = true }) {
 
 async function startRunSession() {
   if (!selectedExercise || !currentConfig) return;
+  
+  // Validate configuration before starting
+  if (currentConfig.inhaleSec === 0 || currentConfig.exhaleSec === 0) {
+    setHomeMessage({
+      tone: "danger",
+      text: "Invalid configuration: Inhale and Exhale must be at least 1 second.",
+    });
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
+    return;
+  }
+  
   if (currentConfig.exerciseID) {
     const matched =
       getExercises().find((ex) => ex.exerciseID === currentConfig.exerciseID) ||
@@ -363,7 +379,19 @@ async function startRunSession() {
       };
   }
   const phases = buildPhases(currentConfig);
-  if (!phases.length) return;
+  if (!phases.length) {
+    setHomeMessage({
+      tone: "danger",
+      text: "Invalid configuration: At least one phase must have a duration greater than 0.",
+    });
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
+    return;
+  }
   stopRunTimer();
   let startedSession = null;
   try {
@@ -377,11 +405,17 @@ async function startRunSession() {
     });
   } catch (err) {
     setHomeMessage({
-      tone: "secondary",
-      text: err?.message || "Failed to start session.",
+      tone: "danger",
+      text: err?.message || "Failed to start session. Please check your exercise settings.",
     });
-    // Continue locally even if backend session fails.
-    startedSession = null;
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
+    // Do not start exercise if backend validation fails
+    return;
   }
   runState = {
     active: true,
@@ -555,19 +589,24 @@ function renderConfigureExercise() {
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <div class="text-uppercase text-muted small mb-3">Breath Cycle</div>
+          ${(config.inhaleSec === 0 || config.exhaleSec === 0) ? `
+            <div class="alert alert-warning mb-3">
+              <strong>Invalid configuration:</strong> Inhale and Exhale must be at least 1 second. Only Hold phases can be 0 seconds.
+            </div>
+          ` : ''}
           <div class="d-grid gap-2">
             <div class="d-flex justify-content-between align-items-center">
               <span>Inhale</span>
               <div class="d-flex align-items-center gap-2 config-control">
-                <button class="btn btn-outline-secondary btn-sm" data-adjust="inhaleSec" data-delta="-1">−</button>
-                <span class="config-value">${config.inhaleSec} sec</span>
+                <button class="btn btn-outline-secondary btn-sm" data-adjust="inhaleSec" data-delta="-1" ${config.inhaleSec <= 1 ? 'disabled' : ''}>−</button>
+                <span class="config-value ${config.inhaleSec === 0 ? 'text-danger fw-bold' : ''}">${config.inhaleSec} sec</span>
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="inhaleSec" data-delta="1">+</button>
               </div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
               <span>Hold after Inhale</span>
               <div class="d-flex align-items-center gap-2 config-control">
-                <button class="btn btn-outline-secondary btn-sm" data-adjust="hold1Sec" data-delta="-1">−</button>
+                <button class="btn btn-outline-secondary btn-sm" data-adjust="hold1Sec" data-delta="-1" ${config.hold1Sec <= 0 ? 'disabled' : ''}>−</button>
                 <span class="config-value">${config.hold1Sec} sec</span>
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="hold1Sec" data-delta="1">+</button>
               </div>
@@ -575,15 +614,15 @@ function renderConfigureExercise() {
             <div class="d-flex justify-content-between align-items-center">
               <span>Exhale</span>
               <div class="d-flex align-items-center gap-2 config-control">
-                <button class="btn btn-outline-secondary btn-sm" data-adjust="exhaleSec" data-delta="-1">−</button>
-                <span class="config-value">${config.exhaleSec} sec</span>
+                <button class="btn btn-outline-secondary btn-sm" data-adjust="exhaleSec" data-delta="-1" ${config.exhaleSec <= 1 ? 'disabled' : ''}>−</button>
+                <span class="config-value ${config.exhaleSec === 0 ? 'text-danger fw-bold' : ''}">${config.exhaleSec} sec</span>
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="exhaleSec" data-delta="1">+</button>
               </div>
             </div>
             <div class="d-flex justify-content-between align-items-center">
               <span>Hold after Exhale</span>
               <div class="d-flex align-items-center gap-2 config-control">
-                <button class="btn btn-outline-secondary btn-sm" data-adjust="hold2Sec" data-delta="-1">−</button>
+                <button class="btn btn-outline-secondary btn-sm" data-adjust="hold2Sec" data-delta="-1" ${config.hold2Sec <= 0 ? 'disabled' : ''}>−</button>
                 <span class="config-value">${config.hold2Sec} sec</span>
                 <button class="btn btn-outline-secondary btn-sm" data-adjust="hold2Sec" data-delta="1">+</button>
               </div>
@@ -617,8 +656,8 @@ function renderConfigureExercise() {
       </div>
 
       <div class="d-flex flex-wrap gap-2">
-        <button class="btn btn-primary" data-confirm-exercise>Confirm</button>
-        <button class="btn btn-outline-secondary" data-save-preset>Save as Preset</button>
+        <button class="btn btn-primary" data-confirm-exercise ${(config.inhaleSec === 0 || config.exhaleSec === 0) ? 'disabled' : ''}>Confirm</button>
+        <button class="btn btn-outline-secondary" data-save-preset ${(config.inhaleSec === 0 || config.exhaleSec === 0) ? 'disabled' : ''}>Save as Preset</button>
         <button class="btn btn-outline-secondary" data-exercise-back>Back to exercises</button>
       </div>
     </section>
@@ -834,7 +873,8 @@ document.addEventListener("click", async (e) => {
     const field = adjustBtn.dataset.adjust;
     const delta = Number(adjustBtn.dataset.delta || 0);
     if (!currentConfig) return;
-    const minValue = field === "repetitions" ? 1 : 0;
+    // Enforce minimum values: inhale/exhale must be >= 1, holds can be >= 0
+    const minValue = field === "repetitions" ? 1 : (field === "inhaleSec" || field === "exhaleSec" ? 1 : 0);
     const next = Math.max(minValue, Number(currentConfig[field]) + delta);
     currentConfig = { ...currentConfig, [field]: next };
     renderExercisesView();
@@ -843,6 +883,20 @@ document.addEventListener("click", async (e) => {
 
   const confirmBtn = e.target.closest("[data-confirm-exercise]");
   if (confirmBtn) {
+    // Validate before confirming
+    if (!currentConfig || currentConfig.inhaleSec === 0 || currentConfig.exhaleSec === 0) {
+      setHomeMessage({
+        tone: "danger",
+        text: "Invalid configuration: Inhale and Exhale must be at least 1 second.",
+      });
+      renderHome(
+        document.querySelector("#screen-home"),
+        selectedExercise,
+        currentConfig,
+        homeMessage
+      );
+      return;
+    }
     currentView = "exercise-list";
     renderHome(
       document.querySelector("#screen-home"),
@@ -857,6 +911,20 @@ document.addEventListener("click", async (e) => {
 
   const saveBtn = e.target.closest("[data-save-preset]");
   if (saveBtn) {
+    // Validate before allowing save
+    if (!currentConfig || currentConfig.inhaleSec === 0 || currentConfig.exhaleSec === 0) {
+      setHomeMessage({
+        tone: "danger",
+        text: "Invalid configuration: Inhale and Exhale must be at least 1 second.",
+      });
+      renderHome(
+        document.querySelector("#screen-home"),
+        selectedExercise,
+        currentConfig,
+        homeMessage
+      );
+      return;
+    }
     presetName = selectedExercise ? selectedExercise.name : "";
     presetError = "";
     presetSaved = false;
@@ -880,6 +948,12 @@ document.addEventListener("click", async (e) => {
     }
     if (isPresetNameTaken(trimmedName)) {
       presetError = "Name already exists. Choose a different name.";
+      renderExercisesView();
+      return;
+    }
+    // Validate configuration before saving
+    if (!currentConfig || currentConfig.inhaleSec === 0 || currentConfig.exhaleSec === 0) {
+      presetError = "Invalid configuration: Inhale and Exhale must be at least 1 second.";
       renderExercisesView();
       return;
     }
