@@ -69,7 +69,13 @@ export function renderHome(
 
       <div class="d-flex justify-content-center gap-3 flex-wrap run-actions">
         <button class="btn btn-info btn-lg" data-nav="run">Start Exercise</button>
-        <button class="btn btn-outline-light btn-lg" data-nav="exercises">${chooseLabel}</button>
+        <button
+          class="btn btn-outline-light btn-lg"
+          data-nav="exercises"
+          data-origin="home"
+        >
+          ${chooseLabel}
+        </button>
       </div>
     </div>
   `;

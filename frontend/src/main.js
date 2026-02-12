@@ -66,6 +66,7 @@ let runTimer = null;
 let breathTimeline = null;
 let exercisesLoading = true;
 let exercisesError = "";
+let exercisesFromHome = false;
 
 async function hydrateExercises() {
   exercisesLoading = true;
@@ -434,10 +435,20 @@ function renderExerciseItem(ex) {
 
 function renderExerciseSelection() {
   const list = getExercises();
+  const backButton = exercisesFromHome
+    ? `
+      <button class="btn btn-outline-light btn-sm" data-exercises-back>
+        Back to home
+      </button>
+    `
+    : "";
   if (exercisesLoading) {
     return `
       <section class="container my-4">
-        <h2 class="mb-3">Exercises</h2>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="mb-0">Exercises</h2>
+          ${backButton}
+        </div>
         <div class="text-muted small">Loading exercises...</div>
       </section>
     `;
@@ -445,7 +456,10 @@ function renderExerciseSelection() {
   if (exercisesError) {
     return `
       <section class="container my-4">
-        <h2 class="mb-3">Exercises</h2>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="mb-0">Exercises</h2>
+          ${backButton}
+        </div>
         <div class="alert alert-secondary">${exercisesError}</div>
       </section>
     `;
@@ -453,7 +467,10 @@ function renderExerciseSelection() {
   if (!list.length) {
     return `
       <section class="container my-4">
-        <h2 class="mb-3">Exercises</h2>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="mb-0">Exercises</h2>
+          ${backButton}
+        </div>
         <div class="text-muted small">No exercises available.</div>
       </section>
     `;
@@ -463,7 +480,10 @@ function renderExerciseSelection() {
 
   return `
     <section class="container my-4">
-      <h2 class="mb-3">Exercises</h2>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="mb-0">Exercises</h2>
+        ${backButton}
+      </div>
 
       <div class="mb-4">
         <h5 class="text-light">Default Exercises</h5>
@@ -513,7 +533,7 @@ function renderConfigureExercise() {
     <section class="container my-4">
       <div class="d-flex align-items-center justify-content-between mb-3">
         <h2 class="mb-0">Exercise Settings</h2>
-        <button class="btn btn-outline-secondary btn-sm" data-exercise-back>
+        <button class="btn btn-outline-light btn-sm" data-exercise-back>
           Back
         </button>
       </div>
@@ -599,7 +619,7 @@ function renderConfigureExercise() {
       <div class="d-flex flex-wrap gap-2">
         <button class="btn btn-primary" data-confirm-exercise>Confirm</button>
         <button class="btn btn-outline-secondary" data-save-preset>Save as Preset</button>
-        <button class="btn btn-outline-secondary" data-exercise-back>Cancel</button>
+        <button class="btn btn-outline-secondary" data-exercise-back>Back to exercises</button>
       </div>
     </section>
   `;
@@ -737,6 +757,11 @@ document.addEventListener("click", async (e) => {
   const navBtn = e.target.closest("[data-nav]");
   if (navBtn) {
     const target = navBtn.dataset.nav;
+    if (target === "exercises") {
+      exercisesFromHome = navBtn.dataset.origin === "home";
+    } else {
+      exercisesFromHome = false;
+    }
     if (target === "home") {
       renderHome(
         document.querySelector("#screen-home"),
@@ -788,6 +813,19 @@ document.addEventListener("click", async (e) => {
       homeMessage
     );
     renderExercisesView();
+    return;
+  }
+
+  const exercisesBack = e.target.closest("[data-exercises-back]");
+  if (exercisesBack) {
+    exercisesFromHome = false;
+    renderHome(
+      document.querySelector("#screen-home"),
+      selectedExercise,
+      currentConfig,
+      homeMessage
+    );
+    nav.show("home");
     return;
   }
 
