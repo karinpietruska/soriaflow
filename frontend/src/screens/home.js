@@ -27,7 +27,9 @@ export function renderHome(
   const chooseLabel = "Change Exercise";
   const cycleSec = cycleDurationSec(config);
   const totalSec = cycleSec * Number(config.repetitions);
-  const totalMin = Math.max(1, Math.round(totalSec / 60));
+  const totalMinutes = Math.floor(totalSec / 60);
+  const totalSeconds = totalSec % 60;
+  const totalLabel = `${totalMinutes} min ${totalSeconds} s`;
   const messageBlock = message
     ? `
       <div class="alert alert-${message.tone || "secondary"} py-2 mb-3">
@@ -43,7 +45,7 @@ export function renderHome(
     <div class="mb-3">
       <div class="text-exercise-name fs-2 mb-2">${ex.name}</div>
       <div class="text-secondary fs-6">
-        Phases: ${config.inhaleSec}-${config.hold1Sec}-${config.exhaleSec}-${config.hold2Sec} · Total: ${totalMin} min · Reps: ${config.repetitions}
+        Phases: ${config.inhaleSec}-${config.hold1Sec}-${config.exhaleSec}-${config.hold2Sec} · Total: ${totalLabel} · Reps: ${config.repetitions}
       </div>
     </div>
 
