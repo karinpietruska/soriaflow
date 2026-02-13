@@ -15,6 +15,9 @@
 venv/
 backend/.venv/
 
+# Demo / local scripts (not part of app)
+backend/scripts/
+
 # Python cache / compiled files
 __pycache__/
 *.pyc
@@ -31,6 +34,7 @@ __pycache__/
 *.sqlite
 *.sqlite3
 *.db
+!backend/demo.db
 
 ############################
 # Node / Frontend (future-proof)
