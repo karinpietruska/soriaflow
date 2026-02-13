@@ -64,11 +64,35 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate (cmd) | .venv\Scripts\Activate.ps1 (PowerShell)
 pip install -r requirements.txt
+```
+
+
+#### Start the backend (default database)
+
+```bash
 uvicorn app.main:app --reload
 ```
+This starts the backend using the default database file `app.db`.
+If `app.db` does not exist, it will be created automatically and initialized with the default breathing exercises.
+
+#### Start the backend with prefilled demo data (optional)
+
+```bash
+cd backend
+python run.py --demo
+```
+
+This starts the backend using `demo.db`, which contains pre-filled example data (e.g., sessions and mood entries) for demonstration and testing purposes.
+
+Note: demo.db is writable. Any changes made while running in demo mode will modify this file locally.
+
+When using demo mode, do not start `uvicorn` manually — `run.py` starts the server automatically.
 
 The backend will be available at:
 http://127.0.0.1:8000
+
+Interactive API documentation (Swagger UI):
+http://127.0.0.1:8000/docs
 
 For more backend details, see `backend/README.md`.
 
@@ -87,7 +111,7 @@ http://localhost:5173
 
 ## Data Storage
 
-All application data is stored locally in a SQLite database file.
+All application data is stored locally in a SQLite database file (`app.db` by default or `demo.db` in demo mode).
 No external services, cloud storage, or third-party APIs are used.
 
 If you change database schemas or default exercise seed data, delete `backend/app.db`
@@ -104,7 +128,7 @@ Stored entities include:
 - Breathing animations and timers run entirely in the browser
 - A breathing session is created when an exercise starts and finalized when it ends or is aborted
 - Sessions without at least one completed repetition are not shown in the history view
-- Mood logging is after an exercise optional and can be deactivated by the user
+- Mood logging after an exercise is optional and can be deactivated by the user
 
 
 ## Project Status
