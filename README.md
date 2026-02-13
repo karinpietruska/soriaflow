@@ -61,8 +61,8 @@ There is no technically persisted user management; all data is implicitly associ
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate (cmd) | .venv\Scripts\Activate.ps1 (PowerShell)
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
